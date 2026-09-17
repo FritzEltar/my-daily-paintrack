@@ -9,40 +9,44 @@
       或双击 tools\update-gallery.cmd
 
     ------------------------------------------------------------
-    目录层级 = 网站层级，共三级：
+    目录层级 = 网站层级，共两级：
 
-        images/全部/大图集1/角色1/001.jpg
-               └大类┘└大图集┘└角色┘
+        images/2026/9月/001.jpg
+               └大类┘└图集┘
 
-      第 1 层  images/<大类>/            例如「全部」。以后想加新大类，
+      第 1 层  images/<大类>/            例如「2026」。以后想加新大类，
                                         直接建 images/<新大类>/ 即可
-      第 2 层  <大类>/<大图集>/          网站的图集列表，每个图集一张封面
-      第 3 层  <大图集>/<角色>/          图集内的分类（没有「全部」这一档）
+      第 2 层  <大类>/<图集>/            网站的图集列表，每个图集一张封面；
+                                        图集里的图片拼成一面正方形缩略图墙
 
     规则：
-      · 图片直接放在大图集文件夹下（没有角色子文件夹）-> 归入「草稿箱」，
-        用来放还没分类的图
-      · 第 4 层及更深会合并进角色名，例如 角色1/服装 -> 角色 "角色1/服装"
-      · 放在 images/ 根目录的图片 -> 大类「未分类」/ 大图集「未分类」
-      · 文件名去掉扩展名后作为标题
+      · **只有两级**：图集文件夹里的图片全部平铺在一起，不再分角色 /
+        草稿箱。图集里如果又套了子文件夹，里面的图会被合并进同一个图集
+        （脚本会打印一行提示）
+      · 放在 images/ 根目录的图片 -> 大类「未分类」/ 图集「未分类」
+      · 图片直接放在大类文件夹下（没有图集子文件夹）-> 图集「未分类」
+      · 文件名去掉扩展名后作为标题，鼠标悬停在缩略图上才显示
 
     图集封面的确定顺序（先找到先用）：
-      1) 大图集文件夹里的 cover.jpg / cover.png / _cover.* / 封面.*
+      1) 图集文件夹里的 cover.jpg / cover.png / _cover.* / 封面.*
          想换封面，直接替换这个文件即可（它不会被当成图片显示）
-      2) images/meta.json 里该大图集的 "cover" 字段
-      3) 该大图集里的第一张图
+      2) images/meta.json 里该图集的 "cover" 字段
+      3) 该图集里的第一张图
+
+    每张图还会带上原始宽高（w / h）。网页上缩略图是裁成正方形显示的，
+    用不到它；记下来是为了以后想改排版时手上有数据。
 
     images/meta.json（可选，不存在就跳过）：
       {
         "collections": {
-          "全部/大图集1": { "name": "显示名", "cover": "角色1/001.jpg" }
+          "2026/9月": { "name": "显示名", "cover": "001.jpg" }
         },
         "images": {
-          "全部/大图集1/角色1/001.jpg": {
-            "title": "雷电将军",
-            "description": "官方立绘",
-            "tags": ["原神", "参考"],
-            "date": "2026-01-05"
+          "2026/9月/001.jpg": {
+            "title": "9月速写 01",
+            "description": "针管笔",
+            "tags": ["速写", "参考"],
+            "date": "2026-09-01"
           }
         }
       }
@@ -181,7 +185,6 @@ $extensions = @('.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.bmp', '.svg
 # System.Drawing 读不了的格式，只能直接用小图代替缩略图
 $thumbableExtensions = @('.jpg', '.jpeg', '.png', '.gif', '.bmp')
 $coverNames = @('cover', '_cover', '封面')
-$DRAFT = '草稿箱'
 $UNCLASSIFIED = '未分类'
 
 # 必须写成 UTF-8 无 BOM，否则浏览器 fetch + JSON.parse 会报错
@@ -228,15 +231,14 @@ function Get-DateKey($value) {
 #   views/   灯箱查看用，最长边 1600px（灯箱最多显示约 1000px 宽）
 #   原图     只在「下载」和「复制图片 URL」时用到
 
+# 尺寸、EXIF、派生图都要用它，能加载就加载（.NET 自带，不用装东西）
 $drawingLoaded = $false
-if ((-not $NoThumbs) -or (-not $NoExif)) {
-    try {
-        Add-Type -AssemblyName System.Drawing
-        $drawingLoaded = $true
-    }
-    catch {
-        Write-Host "无法加载 System.Drawing：$($_.Exception.Message)" -ForegroundColor Yellow
-    }
+try {
+    Add-Type -AssemblyName System.Drawing
+    $drawingLoaded = $true
+}
+catch {
+    Write-Host "无法加载 System.Drawing：本次不生成派生图、不读 EXIF，也没有图片尺寸：$($_.Exception.Message)" -ForegroundColor Yellow
 }
 
 $derivativesAvailable = $drawingLoaded -and (-not $NoThumbs)
@@ -404,6 +406,32 @@ function Get-ExifDateKey($fullPath) {
     return ''
 }
 
+# ---------- 读图片尺寸 ----------
+# 瀑布流要靠原始宽高比先把位置算好，不然图一张张加载出来高度一变，
+# 整面墙会跳来跳去。优先读缩略图（小、快、一定读得出来），没有就读原图。
+
+function Get-ImageSize($fullPath, $relFromImages) {
+    $target = $fullPath
+    if ($relFromImages -and $thumbMap.ContainsKey($relFromImages)) {
+        $thumbFull = Join-Path $root ($thumbMap[$relFromImages] -replace '/', '\')
+        if (Test-Path -LiteralPath $thumbFull) { $target = $thumbFull }
+    }
+    if ((-not $drawingLoaded) -or (-not $target)) { return @(0, 0) }
+
+    $img = $null
+    try {
+        $img = [System.Drawing.Image]::FromFile($target)
+        return @([int]$img.Width, [int]$img.Height)
+    }
+    catch {
+        # webp / avif / svg 之类读不了，交给前端按默认比例兜底
+        return @(0, 0)
+    }
+    finally {
+        if ($img) { $img.Dispose() }
+    }
+}
+
 # ---------- 上一次生成的 images.json 里记着的日期 ----------
 # 换电脑 / 重新 clone 之后文件时间会全部变成同一天，这张表能保住原来的日期。
 
@@ -414,18 +442,31 @@ function Get-PreviousDates($path) {
     try {
         $old = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
         if ($old -and $old.groups) {
+            $flat = New-Object System.Collections.Generic.List[object]
+
             foreach ($g in @($old.groups)) {
                 foreach ($c in @($g.collections)) {
-                    foreach ($r in @($c.roles)) {
-                        foreach ($i in @($r.images)) {
-                            if (-not $i.file -or -not $i.date) { continue }
-                            $key = Get-DateKey $i.date
-                            if (-not $key) { continue }
-                            $rel = ([string]$i.file) -replace ('^' + [regex]::Escape("$ImagesDir/")), ''
-                            if ($rel) { $map[$rel] = $key }
+                    # 新清单是 collections -> images
+                    if ($c.images) {
+                        foreach ($i in @($c.images)) { $flat.Add($i) }
+                    }
+                    # 旧清单是 collections -> roles -> images
+                    if ($c.roles) {
+                        foreach ($r in @($c.roles)) {
+                            if ($r.images) {
+                                foreach ($i in @($r.images)) { $flat.Add($i) }
+                            }
                         }
                     }
                 }
+            }
+
+            foreach ($i in $flat) {
+                if (-not $i.file -or -not $i.date) { continue }
+                $key = Get-DateKey $i.date
+                if (-not $key) { continue }
+                $rel = ([string]$i.file) -replace ('^' + [regex]::Escape("$ImagesDir/")), ''
+                if ($rel) { $map[$rel] = $key }
             }
         }
     }
@@ -532,7 +573,7 @@ if (Test-Path -LiteralPath $dailyPath) {
     }
 }
 
-# ---------- 扫描文件，建三级树 ----------
+# ---------- 扫描文件，建两级树 ----------
 
 $files = Get-ChildItem -LiteralPath $imagesPath -Recurse -File |
     Where-Object { $extensions -contains $_.Extension.ToLower() } |
@@ -544,6 +585,7 @@ $tree = [ordered]@{}
 $coverFiles = @{}
 $count = 0
 $autoDays = @{}      # 'yyyy-MM-dd' -> 当天的图片张数
+$flattened = 0       # 图集里又套了子文件夹、被合并进来的图片数
 
 foreach ($file in $files) {
     $relFromImages = $file.FullName.Substring($imagesPath.Length).TrimStart('\', '/') -replace '\\', '/'
@@ -556,10 +598,10 @@ foreach ($file in $files) {
         $dirs = @($segments[0..($segments.Count - 2)])
     }
 
-    # 第 1 层 = 大类，第 2 层 = 大图集，第 3 层起 = 角色
+    # 第 1 层 = 大类，第 2 层 = 图集；再深的子文件夹直接并进图集，不再分角色
     $group = if ($dirs.Count -ge 1) { $dirs[0] } else { $UNCLASSIFIED }
     $collection = if ($dirs.Count -ge 2) { $dirs[1] } else { $UNCLASSIFIED }
-    $role = if ($dirs.Count -ge 3) { ($dirs[2..($dirs.Count - 1)]) -join '/' } else { $DRAFT }
+    if ($dirs.Count -ge 3) { $flattened++ }
 
     $relPath = "$ImagesDir/$relFromImages"
     $title = [System.IO.Path]::GetFileNameWithoutExtension($name)
@@ -587,9 +629,8 @@ foreach ($file in $files) {
     }
 
     if (-not $tree.Contains($group)) { $tree[$group] = [ordered]@{} }
-    if (-not $tree[$group].Contains($collection)) { $tree[$group][$collection] = [ordered]@{} }
-    if (-not $tree[$group][$collection].Contains($role)) {
-        $tree[$group][$collection][$role] = New-Object System.Collections.Generic.List[object]
+    if (-not $tree[$group].Contains($collection)) {
+        $tree[$group][$collection] = New-Object System.Collections.Generic.List[object]
     }
 
     # 先生成两档派生图，再写进条目
@@ -601,7 +642,12 @@ foreach ($file in $files) {
     $viewRel = ''
     if ($viewMap.ContainsKey($relFromImages)) { $viewRel = $viewMap[$relFromImages] }
 
-    $tree[$group][$collection][$role].Add([pscustomobject][ordered]@{
+    # 瀑布流排版要用原始宽高比
+    $size = Get-ImageSize $file.FullName $relFromImages
+    $width = [int]$size[0]
+    $height = [int]$size[1]
+
+    $tree[$group][$collection].Add([pscustomobject][ordered]@{
         file        = $relPath
         thumb       = $thumbRel
         view        = $viewRel
@@ -609,6 +655,8 @@ foreach ($file in $files) {
         description = $description
         tags        = $tags
         date        = $dateKey
+        w           = $width
+        h           = $height
     }) | Out-Null
 
     $count++
@@ -646,38 +694,12 @@ foreach ($group in @($tree.Keys | Sort-Object)) {
     $groupCoverThumb = ''
 
     foreach ($collection in @($tree[$group].Keys | Sort-Object)) {
-        $rolesOut = New-Object System.Collections.Generic.List[object]
-        $collectionImages = 0
-        $firstImage = ''
-        $firstDraftImage = ''
-
-        # 角色排序：普通角色按名称，草稿箱永远排最后
-        $sorted = @($tree[$group][$collection].Keys | Sort-Object)
-        $roleNames = @($sorted | Where-Object { $_ -ne $DRAFT })
-        if ($sorted -contains $DRAFT) { $roleNames += $DRAFT }
-
-        foreach ($role in $roleNames) {
-            $list = $tree[$group][$collection][$role]
-            if ($list.Count -eq 0) { continue }
-
-            # 回退封面优先用正式角色的第一张，草稿箱只作为兜底
-            if ($role -eq $DRAFT) {
-                if (-not $firstDraftImage) { $firstDraftImage = $list[0].file }
-            }
-            else {
-                if (-not $firstImage) { $firstImage = $list[0].file }
-            }
-
-            $rolesOut.Add([pscustomobject][ordered]@{
-                name       = $role
-                imageCount = $list.Count
-                images     = $list.ToArray()
-            }) | Out-Null
-
-            $collectionImages += $list.Count
-        }
-
+        $list = $tree[$group][$collection]
+        $collectionImages = $list.Count
         if ($collectionImages -eq 0) { continue }
+
+        # 排序是文件名顺序，第一张就是封面兜底
+        $firstImage = $list[0].file
 
         $key = "$group/$collection"
         $cover = ''
@@ -694,7 +716,7 @@ foreach ($group in @($tree.Keys | Sort-Object)) {
             }
         }
         else {
-            if ($firstImage) { $cover = $firstImage } else { $cover = $firstDraftImage }
+            $cover = $firstImage
         }
 
         # 封面在卡片里也是小图，同样给它一张缩略图
@@ -717,7 +739,7 @@ foreach ($group in @($tree.Keys | Sort-Object)) {
             cover      = $cover
             coverThumb = $coverThumb
             imageCount = $collectionImages
-            roles      = $rolesOut.ToArray()
+            images     = $list.ToArray()
         }) | Out-Null
 
         $groupImages += $collectionImages
@@ -784,7 +806,7 @@ if ($groupsOut.Count -eq 0) {
 }
 else {
     $payload = [pscustomobject][ordered]@{
-        version = 2
+        version = 3
         groups  = $groupsOut.ToArray()
     }
     $json = ConvertTo-ReadableJson $payload
@@ -891,10 +913,12 @@ foreach ($g in $groupsOut) {
     Write-Host ("  【{0}】{1} 个图集，{2} 张图" -f $g.name, $g.collectionCount, $g.imageCount) -ForegroundColor Cyan
     foreach ($c in $g.collections) {
         Write-Host ("    - {0}（{1} 张）封面: {2}" -f $c.name, $c.imageCount, (Split-Path $c.cover -Leaf))
-        foreach ($r in $c.roles) {
-            Write-Host ("        . {0}: {1} 张" -f $r.name, $r.imageCount)
-        }
     }
+}
+
+if ($flattened -gt 0) {
+    Write-Host ""
+    Write-Host "  有 $flattened 张图放在图集下的子文件夹里，已合并进图集（现在只分两级，不再有角色）" -ForegroundColor DarkGray
 }
 
 if ($totalImages -gt 0) {

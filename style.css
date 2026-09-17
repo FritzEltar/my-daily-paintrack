@@ -755,70 +755,6 @@ body.side-hidden .side-panel {
 
 
 /* =========================
-   角色页签（图集内部）
-========================= */
-
-.role-section {
-    display: flex;
-
-    align-items: center;
-
-    /* 页签整行水平居中 */
-    justify-content: center;
-
-    flex-wrap: wrap;
-
-    gap: 10px;
-
-    margin-bottom: 22px;
-
-    padding-bottom: 16px;
-
-    border-bottom: 1px solid #eee;
-}
-
-/* 搜索时不受角色筛选限制，页签整体淡化 */
-.role-section.searching .role-tab {
-    opacity: 0.45;
-}
-
-.role-tab {
-    border: none;
-
-    background: #eee;
-
-    color: #444;
-
-    padding: 8px 18px;
-
-    border-radius: 18px;
-
-    cursor: pointer;
-
-    font-size: 14px;
-
-    line-height: 1.4;
-
-    /* 长英文名不换行、不截断：页签跟着内容撑开 */
-    white-space: nowrap;
-
-    text-align: center;
-
-    transition: 0.2s;
-}
-
-.role-tab:hover {
-    background: #e0e0e0;
-}
-
-.role-tab.active {
-    background: #222;
-
-    color: white;
-}
-
-
-/* =========================
    结果信息
 ========================= */
 
@@ -836,138 +772,128 @@ body.side-hidden .side-panel {
 
 
 /* =========================
-   图片网格
+   缩略图墙（图集内部）
+   ---------------------------------------------------------
+   每张图都是同样大小的正方形，无缝拼在一起；
+   图上平时什么都不显示，鼠标悬停 / 键盘聚焦才浮出文件名。
+   点开看图用的是原图（灯箱）。
 ========================= */
 
 .gallery {
+    /* 图与图的缝宽。0 = 严丝合缝拼在一起；想留缝就改成 3px 之类 */
+    --wall-gap: 0px;
+
     display: grid;
 
     grid-template-columns:
         repeat(4, 1fr);
 
-    gap: 20px;
+    gap: var(--wall-gap);
 }
 
+.wall-item {
+    /* 正方形：宽高都由列宽决定 */
+    position: relative;
 
-/* =========================
-   图片卡片
-========================= */
-
-.image-card {
-    background: white;
-
-    /* 和封面卡保持一致：直角 */
-    border-radius: 0;
+    aspect-ratio: 1 / 1;
 
     overflow: hidden;
+
+    background: #e9e9e9;
 
     cursor: pointer;
-
-    box-shadow:
-        0 2px 8px rgba(0, 0, 0, 0.08);
-
-    transition:
-        transform 0.2s,
-        box-shadow 0.2s;
 }
 
-.image-card:hover {
-    transform: translateY(-5px);
-
-    box-shadow:
-        0 8px 25px rgba(0, 0, 0, 0.14);
-}
-
-.image-wrapper {
-    width: 100%;
-
-    aspect-ratio: 4 / 3;
-
-    overflow: hidden;
-
-    background: #eee;
-}
-
-.image-wrapper img {
+.wall-img {
     width: 100%;
 
     height: 100%;
 
+    /* 裁成正方形填满格子，完整原图点开在灯箱里看 */
     object-fit: cover;
 
     display: block;
 
-    transition: transform 0.3s;
+    transition: transform 0.35s;
 }
 
-.image-card:hover img {
-    transform: scale(1.05);
+.wall-item:hover .wall-img,
+.wall-item:focus-visible .wall-img {
+    transform: scale(1.04);
 }
 
-.image-info {
-    padding: 13px 15px;
+.wall-item:focus-visible {
+    outline: 2px solid #4d6bfe;
+
+    outline-offset: -2px;
 }
 
-.image-title {
-    margin: 0 0 5px;
+/* 文件名：平时藏着，鼠标悬停 / 键盘聚焦才浮上来 */
+.wall-caption {
+    position: absolute;
 
-    font-size: 16px;
+    left: 0;
 
-    font-weight: bold;
+    right: 0;
+
+    bottom: 0;
+
+    padding: 26px 10px 8px;
+
+    color: white;
+
+    font-size: 13px;
+
+    line-height: 1.4;
+
+    white-space: nowrap;
 
     overflow: hidden;
 
     text-overflow: ellipsis;
 
-    white-space: nowrap;
+    background:
+        linear-gradient(to top,
+            rgba(0, 0, 0, 0.78),
+            rgba(0, 0, 0, 0));
+
+    opacity: 0;
+
+    transition: opacity 0.18s;
+
+    pointer-events: none;
 }
 
-.image-category {
-    font-size: 13px;
-
-    color: #888;
+.wall-item:hover .wall-caption,
+.wall-item:focus-visible .wall-caption {
+    opacity: 1;
 }
 
+/* 触屏没有"悬停"，那就一直显示 */
+@media (hover: none) {
 
-/* =========================
-   标签
-========================= */
+    .wall-caption {
+        opacity: 1;
+    }
 
-.image-tags {
+}
+
+.wall-fail {
+    position: absolute;
+
+    inset: 0;
+
     display: flex;
 
-    flex-wrap: wrap;
+    align-items: center;
 
-    gap: 5px;
+    justify-content: center;
 
-    margin-top: 8px;
-}
-
-.image-tag {
-    font-size: 11px;
-
-    color: #666;
-
-    background: #f0f0f0;
-
-    padding: 2px 8px;
-
-    border-radius: 10px;
-}
-
-
-/* =========================
-   加载中
-========================= */
-
-.loading {
-    grid-column: 1 / -1;
-
-    text-align: center;
-
-    padding: 60px 20px;
+    background: #eee;
 
     color: #888;
+
+    font-size: 13px;
 }
 
 
@@ -1397,41 +1323,14 @@ body.dark .cover-subtitle {
     color: #999;
 }
 
-body.dark .role-section {
-    border-color: #2f2f2f;
-}
-
-body.dark .role-tab {
-    background: #2b2b2b;
-
-    color: #ddd;
-}
-
-body.dark .role-tab:hover {
-    background: #383838;
-}
-
-body.dark .role-tab.active {
-    background: #eee;
-
-    color: #111;
-}
-
-body.dark .image-card {
-    background: #1e1e1e;
-
-    box-shadow:
-        0 2px 10px rgba(0, 0, 0, 0.4);
-}
-
-body.dark .image-wrapper {
+body.dark .wall-item {
     background: #292929;
 }
 
-body.dark .image-tag {
-    background: #2b2b2b;
+body.dark .wall-fail {
+    background: #292929;
 
-    color: #aaa;
+    color: #888;
 }
 
 body.dark .empty-message code {
@@ -1591,30 +1490,10 @@ body.dark .hm-tip b {
     .gallery {
         grid-template-columns:
             repeat(2, 1fr);
-
-        gap: 12px;
-    }
-
-    .image-info {
-        padding: 10px;
-    }
-
-    .image-title {
-        font-size: 14px;
     }
 
     .modal-content {
         padding: 12px;
-    }
-
-}
-
-
-@media (max-width: 400px) {
-
-    .gallery {
-        grid-template-columns:
-            repeat(1, 1fr);
     }
 
 }
@@ -1649,17 +1528,6 @@ body.dark .hm-tip b {
         font-size: 14px;
 
         margin-bottom: 18px;
-    }
-
-}
-
-
-@media (max-width: 400px) {
-
-    .role-tab {
-        font-size: 13px;
-
-        padding: 6px 12px;
     }
 
 }

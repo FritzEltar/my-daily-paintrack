@@ -5,26 +5,29 @@
      images.json    图片清单
      heatmap.json   每日数量：{ "days": { "2026-01-05": {count, note} } }
 
-   清单是三级嵌套结构：
+   清单是两级嵌套结构：
      {
-       "version": 2,
-       "groups": [                       // 第 1 级：大类（如「全部」）
+       "version": 3,
+       "groups": [                       // 第 1 级：大类（如「2026」）
          {
-           "name": "全部",
+           "name": "2026",
            "cover": "images/...",
-           "collectionCount": 2,
-           "imageCount": 11,
-           "collections": [              // 第 2 级：大图集
+           "collectionCount": 1,
+           "imageCount": 12,
+           "collections": [              // 第 2 级：图集
              {
-               "name": "大图集1",
-               "path": "全部/大图集1",
+               "name": "9月",
+               "path": "2026/9月",
                "cover": "images/...",    // 封面，每个图集固定一张
-               "imageCount": 6,
-               "roles": [                // 第 3 级：角色（没有「全部」这一档）
+               "imageCount": 12,
+               "images": [               // 图集里的图，拼成一面正方形缩略图墙
                  {
-                   "name": "角色1",
-                   "imageCount": 3,
-                   "images": [ { "file": "...", "title": "...", "tags": [], "date": "2026-01-05" } ]
+                   "file": "images/2026/9月/001.jpg",
+                   "thumb": "thumbs/...", // 墙上用这张
+                   "view": "views/...",   // 灯箱用这张
+                   "title": "001",        // 鼠标悬停在缩略图上才显示
+                   "tags": [], "date": "2026-09-01",
+                   "w": 1400, "h": 2000   // 原图宽高（记录用，排版不依赖它）
                  }
                ]
              }
@@ -35,13 +38,12 @@
 
    导航（单页，不刷新、不开新网页）：
      #/                        只有一个大类时直接进它，否则显示大类列表
-     #/全部                    该大类下的图集封面列表
-     #/全部/大图集1            图集内部：角色页签 + 图片
-     #/全部/大图集1/角色1      同上，并选中该角色
+     #/2026                    该大类下的图集封面列表
+     #/2026/9月                图集内部：一整面正方形缩略图墙
    浏览器前进 / 后退键可以直接用。
 
-   右侧热力图只在「大类 / 图集列表」这两层出现；进入某个图集看图时
-   会隐藏，把整幅宽度让给图片网格（body 加 .side-hidden）。
+   右侧热力图只在「大类 / 图集列表」这两层出现；进入图集看图时
+   会隐藏，把整幅宽度让给图片墙（body 加 .side-hidden）。
    ========================================================= */
 
 (function () {
@@ -49,7 +51,7 @@
 
     /* ---------------- 配置 ---------------- */
 
-    var PAGE_SIZE = 12;                 // 每页显示张数（4 列 × 3 行）
+    var PAGE_SIZE = 24;                 // 每页显示张数（6 行 × 4 列）
     var MANIFEST_URL = 'images.json';   // 图片清单地址
     var HEATMAP_URL = 'heatmap.json';   // 每日热力图数据
     var STORAGE_KEY = 'paintrack-dark';
@@ -68,7 +70,6 @@
         collectionsGrid: document.getElementById('collectionsGrid'),
 
         imagesView: document.getElementById('imagesView'),
-        roleSection: document.getElementById('roleSection'),
         searchInput: document.getElementById('searchInput'),
         resultCount: document.getElementById('resultCount'),
         gallery: document.getElementById('gallery'),
@@ -112,8 +113,7 @@
 
     var view = {
         group: null,        // 当前大类名
-        collection: null,   // 当前大图集名
-        role: null,         // 当前角色名
+        collection: null,   // 当前图集名
         query: '',          // 搜索词（只在图集内部生效）
         page: 1
     };
@@ -186,26 +186,26 @@
     function parseHash() {
         var raw = location.hash.replace(/^#\/?/, '');
         if (!raw) {
-            return { group: null, collection: null, role: null };
+            return { group: null, collection: null };
         }
-        // 先按 / 切分再解码，这样角色名里的 / 会以 %2F 形式保留在单个片段内
+        // 先按 / 切分再解码，这样名字里的 / 会以 %2F 形式保留在单个片段内
+        // 第 3 段（旧版是角色名）直接忽略，老链接照样能打开
         var parts = raw.split('/').filter(function (p) { return p !== ''; });
         return {
             group: parts[0] ? decodeURIComponent(parts[0]) : null,
-            collection: parts[1] ? decodeURIComponent(parts[1]) : null,
-            role: parts[2] ? decodeURIComponent(parts[2]) : null
+            collection: parts[1] ? decodeURIComponent(parts[1]) : null
         };
     }
 
-    function buildHash(group, collection, role) {
-        var parts = [group, collection, role]
+    function buildHash(group, collection) {
+        var parts = [group, collection]
             .filter(function (p) { return p; })
             .map(encodeURIComponent);
         return '#/' + parts.join('/');
     }
 
-    function navigate(group, collection, role) {
-        var hash = buildHash(group, collection, role);
+    function navigate(group, collection) {
+        var hash = buildHash(group, collection);
         if (location.hash === hash) {
             applyRoute();
         } else {
@@ -230,12 +230,16 @@
         return null;
     }
 
-    function findRole(collection, name) {
-        if (!collection) { return null; }
-        for (var i = 0; i < collection.roles.length; i++) {
-            if (collection.roles[i].name === name) { return collection.roles[i]; }
-        }
-        return null;
+    // 图集里的图片数组。兼容还没重跑生成脚本的旧清单（collections -> roles -> images）
+    function collectionImages(collection) {
+        if (!collection) { return []; }
+        if (collection.images) { return collection.images; }
+
+        var out = [];
+        (collection.roles || []).forEach(function (role) {
+            (role.images || []).forEach(function (img) { out.push(img); });
+        });
+        return out;
     }
 
     // 把路由解析成合法状态：找不到的层级一律回退到上一层
@@ -249,7 +253,6 @@
         if (!group) {
             view.group = null;
             view.collection = null;
-            view.role = null;
             view.query = '';
             view.page = 1;
             render();
@@ -257,11 +260,9 @@
         }
 
         var collection = findCollection(group, route.collection);
-        var role = findRole(collection, route.role);
 
         view.group = group.name;
         view.collection = collection ? collection.name : null;
-        view.role = role ? role.name : null;
         view.query = '';
         view.page = 1;
         if (el.searchInput) { el.searchInput.value = ''; }
@@ -312,7 +313,7 @@
 
         renderImages(group);
         show(el.imagesView, true);
-        setSideVisible(false);      // 看图时把宽度让给图片网格
+        setSideVisible(false);      // 看图时把宽度让给图片墙
         renderBreadcrumb();
     }
 
@@ -346,7 +347,7 @@
         if (multi) {
             parts.push({
                 text: '全部图库',
-                onClick: view.group ? function () { navigate(null, null, null); } : null,
+                onClick: view.group ? function () { navigate(null, null); } : null,
                 current: !view.group
             });
         }
@@ -355,10 +356,8 @@
             var groupName = view.group;
             parts.push({
                 text: groupName,
-                // 已进入某个图集时，点大类的名字返回该大类的图集列表
-                onClick: view.collection ? function () {
-                    navigate(groupName, null, null);
-                } : null,
+                // 已进入某个图集时，点大类名字返回该大类的图集列表
+                onClick: view.collection ? function () { navigate(groupName, null); } : null,
                 current: !view.collection
             });
         }
@@ -385,12 +384,23 @@
                 cover: group.coverThumb || group.cover,
                 coverFallback: group.cover,
                 alt: group.name,
-                onClick: function () { navigate(group.name, null, null); }
+                onClick: function () { navigate(group.name, null); }
             }));
         });
     }
 
     /* ---------------- 视图 2：图集封面 ---------------- */
+
+    function collectionDateRange(collection) {
+        var days = [];
+        collectionImages(collection).forEach(function (img) {
+            if (img.date) { days.push(img.date); }
+        });
+        if (!days.length) { return ''; }
+        days.sort();
+        if (days[0] === days[days.length - 1]) { return days[0]; }
+        return days[0] + ' ~ ' + days[days.length - 1];
+    }
 
     function renderCollections(group) {
         el.collectionsGrid.innerHTML = '';
@@ -400,12 +410,9 @@
         }
 
         group.collections.forEach(function (collection) {
-            var roleCount = collection.roles.filter(function (r) {
-                return r.name !== '草稿箱';
-            }).length;
             var bits = [collection.imageCount + ' 张图'];
-            if (roleCount > 0) { bits.push(roleCount + ' 个角色'); }
-            if (findRole(collection, '草稿箱')) { bits.push('含草稿箱'); }
+            var range = collectionDateRange(collection);
+            if (range) { bits.push(range); }
 
             el.collectionsGrid.appendChild(createCoverCard({
                 title: collection.name,
@@ -415,7 +422,7 @@
                 coverFallback: collection.cover,
                 alt: collection.name,
                 onClick: function () {
-                    navigate(group.name, collection.name, null);
+                    navigate(group.name, collection.name);
                 }
             }));
         });
@@ -481,78 +488,26 @@
         return card;
     }
 
-    /* ---------------- 视图 3：图集内部 ---------------- */
+    /* =========================================================
+       视图 3：图集内部 —— 一面正方形缩略图墙
 
-    // 搜索时跨全图集，否则只看当前角色
-    function computeShownImages(collection) {
-        var q = view.query.trim().toLowerCase();
-
-        var pool = [];
-        if (q) {
-            collection.roles.forEach(function (role) {
-                role.images.forEach(function (img) {
-                    pool.push({ img: img, role: role.name });
-                });
-            });
-        } else {
-            var role = findRole(collection, view.role) || collection.roles[0];
-            if (role) {
-                role.images.forEach(function (img) {
-                    pool.push({ img: img, role: role.name });
-                });
-            }
-        }
-
-        if (q) {
-            pool = pool.filter(function (entry) {
-                var img = entry.img;
-                var haystack = [img.title, img.description, entry.role, img.file]
-                    .concat(img.tags || [])
-                    .join(' ')
-                    .toLowerCase();
-                return haystack.indexOf(q) !== -1;
-            });
-        }
-
-        return pool;
-    }
-
-    function renderRoleTabs(collection, searching) {
-        el.roleSection.innerHTML = '';
-        el.roleSection.classList.toggle('searching', searching);
-
-        if (collection.roles.length === 0) {
-            return;
-        }
-
-        collection.roles.forEach(function (role) {
-            var btn = document.createElement('button');
-            btn.className = 'role-tab' + (!searching && role.name === view.role ? ' active' : '');
-            btn.dataset.role = role.name;
-            // 页签上不显示张数，标题属性里保留，鼠标悬停才看得到
-            btn.textContent = role.name;
-            btn.title = role.name + '（' + role.imageCount + ' 张）';
-            btn.addEventListener('click', function () {
-                navigate(view.group, view.collection, role.name);
-            });
-            el.roleSection.appendChild(btn);
-        });
-    }
+       每张图都是同样大小的正方形（CSS 网格 + object-fit: cover），
+       无缝拼在一起，所以不需要算位置，也不需要图片尺寸；
+       完整原图点开在灯箱里看。
+       ========================================================= */
 
     function createCard(entry, index) {
         var img = entry.img;
 
-        var card = document.createElement('article');
-        card.className = 'image-card';
-        card.tabIndex = 0;
-        card.setAttribute('role', 'button');
-        card.setAttribute('aria-label', '查看 ' + img.title);
-
-        var wrapper = document.createElement('div');
-        wrapper.className = 'image-wrapper';
+        var item = document.createElement('article');
+        item.className = 'wall-item';
+        item.tabIndex = 0;
+        item.setAttribute('role', 'button');
+        item.setAttribute('aria-label', '查看 ' + img.title);
 
         var image = document.createElement('img');
-        // 网格里用小图（缩略图），点开灯箱才加载原图
+        image.className = 'wall-img';
+        // 墙上用小图（缩略图），点开灯箱才加载原图
         image.src = img.thumb || img.file;
         image.alt = img.title;
         image.loading = 'lazy';
@@ -565,84 +520,73 @@
                 image.src = img.file;
                 return;
             }
-            wrapper.innerHTML = '';
-            var fail = document.createElement('div');
-            fail.className = 'loading';
+            image.style.display = 'none';
+            var fail = document.createElement('span');
+            fail.className = 'wall-fail';
             fail.textContent = '图片加载失败';
-            wrapper.appendChild(fail);
+            item.appendChild(fail);
         });
-        wrapper.appendChild(image);
 
-        var info = document.createElement('div');
-        info.className = 'image-info';
+        // 文件名：平时藏着，鼠标悬停 / 键盘聚焦才浮上来
+        var caption = document.createElement('span');
+        caption.className = 'wall-caption';
+        caption.textContent = img.title;
 
-        var title = document.createElement('h3');
-        title.className = 'image-title';
-        title.textContent = img.title;
-        title.title = img.title;
-
-        var role = document.createElement('div');
-        role.className = 'image-category';
-        role.textContent = entry.role;
-
-        info.appendChild(title);
-        info.appendChild(role);
-
-        var tags = img.tags || [];
-        if (tags.length) {
-            var tagBox = document.createElement('div');
-            tagBox.className = 'image-tags';
-            tags.forEach(function (tag) {
-                var chip = document.createElement('span');
-                chip.className = 'image-tag';
-                chip.textContent = tag;
-                tagBox.appendChild(chip);
-            });
-            info.appendChild(tagBox);
-        }
-
-        card.appendChild(wrapper);
-        card.appendChild(info);
+        item.appendChild(image);
+        item.appendChild(caption);
 
         function open() { openModal(index); }
-        card.addEventListener('click', open);
+        item.addEventListener('click', open);
 
         // 悬停 120ms 后才预取，避免鼠标扫过时白白下载一堆图
         var hoverTimer = null;
-        card.addEventListener('mouseenter', function () {
+        item.addEventListener('mouseenter', function () {
             clearTimeout(hoverTimer);
             hoverTimer = setTimeout(function () { prefetch(img); }, 120);
         });
-        card.addEventListener('mouseleave', function () {
+        item.addEventListener('mouseleave', function () {
             clearTimeout(hoverTimer);
         });
-        card.addEventListener('focus', function () { prefetch(img); });
+        item.addEventListener('focus', function () { prefetch(img); });
 
-        card.addEventListener('keydown', function (e) {
+        item.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 open();
             }
         });
 
-        return card;
+        return item;
+    }
+
+    // 没搜索时出全部图，搜索时跨整个图集筛
+    function computeShownImages(collection) {
+        var q = view.query.trim().toLowerCase();
+
+        var pool = collectionImages(collection).map(function (img) {
+            return { img: img };
+        });
+
+        if (!q) { return pool; }
+
+        return pool.filter(function (entry) {
+            var img = entry.img;
+            var haystack = [img.title, img.description, img.file]
+                .concat(img.tags || [])
+                .join(' ')
+                .toLowerCase();
+            return haystack.indexOf(q) !== -1;
+        });
     }
 
     function renderImages(group) {
         var collection = findCollection(group, view.collection);
         if (!collection) {
-            navigate(group.name, null, null);
+            navigate(group.name, null);
             return;
         }
 
         var searching = view.query.trim() !== '';
-
-        // 没有指定角色时默认选第一个（角色列表里没有「全部」）
-        if (!searching && !findRole(collection, view.role)) {
-            view.role = collection.roles.length ? collection.roles[0].name : null;
-        }
-
-        renderRoleTabs(collection, searching);
 
         shownImages = computeShownImages(collection);
 
@@ -660,13 +604,13 @@
         // 数量文案
         el.resultCount.textContent = searching
             ? '在本图集搜到 ' + shownImages.length + ' 张（共 ' + collection.imageCount + ' 张）'
-            : collection.name + ' · ' + (view.role || '') + ' · ' + shownImages.length + ' 张';
+            : collection.name + ' · ' + shownImages.length + ' 张';
 
         // 空状态
         var isEmpty = pageItems.length === 0;
         show(el.imagesEmpty, isEmpty);
         if (isEmpty) {
-            el.imagesEmptyTitle.textContent = searching ? '没有找到图片' : '这个分类还没有图片';
+            el.imagesEmptyTitle.textContent = searching ? '没有找到图片' : '这个图集还没有图片';
             el.imagesEmptyText.textContent = searching
                 ? '换个关键词试试'
                 : '把图片放进对应的文件夹，重跑一次生成脚本即可。';
@@ -1149,7 +1093,6 @@
         var parts = [];
         if (img.description) { parts.push(img.description); }
         parts.push('图集：' + view.collection);
-        parts.push('角色：' + entry.role);
         if (img.date) { parts.push('日期：' + img.date); }
         if ((img.tags || []).length) { parts.push('标签：' + img.tags.join('、')); }
         el.modalDescription.textContent = parts.join(' · ');
@@ -1236,9 +1179,9 @@
             el.homeLink.addEventListener('click', function (e) {
                 e.preventDefault();
                 if (data.groups.length === 1) {
-                    navigate(data.groups[0].name, null, null);
+                    navigate(data.groups[0].name, null);
                 } else {
-                    navigate(null, null, null);
+                    navigate(null, null);
                 }
             });
         }
@@ -1300,7 +1243,7 @@
                     renderStatus(
                         '🖼️',
                         '图库还是空的',
-                        '按 <code>images/大类/图集/角色/</code> 的层级放图片，' +
+                        '按 <code>images/大类/图集/</code> 的层级放图片，' +
                         '然后双击 <code>tools\\update-gallery.cmd</code> 生成清单和热力图。'
                     );
                     setSideVisible(true);
