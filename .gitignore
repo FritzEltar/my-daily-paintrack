@@ -9,3 +9,6 @@ desktop.ini
 
 # 本地预览脚本产生的临时文件
 .preview/
+
+# 自动同步（tools/auto-push.mjs）的运行日志
+logs/

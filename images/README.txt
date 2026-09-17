@@ -1,6 +1,10 @@
 把图片放进这个目录，然后双击 tools\update-gallery.cmd 重新生成 images.json 和
 heatmap.json（右侧热力图的数据）。
 
+（嫌麻烦的话：双击 tools\auto-push.cmd 开一个自动同步窗口，
+ 之后往这里加图 / 删图 / 改 daily.json 都会自动生成清单并推送到 GitHub，
+ 不用再手动跑脚本和敲 git 命令。想开机就自动跑，双击 tools\autostart.cmd。）
+
 目录层级 = 网站层级（只有两级）：
 
     images/2026/9月/001.jpg

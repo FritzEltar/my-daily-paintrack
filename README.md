@@ -39,6 +39,9 @@ my-daily-paintrack/
 └── tools/
     ├── generate-manifest.ps1      扫描 images/ 生成 images.json + heatmap.json
     ├── update-gallery.cmd         上面脚本的双击版
+    ├── auto-push.mjs              自动同步：盯着 images/，自动生成 + 提交 + 推送
+    ├── auto-push.cmd              上面脚本的双击版
+    ├── autostart.ps1 / .cmd       开机自启开关（双击一下开、再双击关）
     ├── preview.mjs                本地预览服务器
     └── preview.cmd                上面脚本的双击版
 ```
@@ -338,6 +341,60 @@ powershell -File tools\generate-manifest.ps1 -ViewWidth 2200 -ViewQuality 90
 
 ---
 
+## 自动同步：加完图自动推送（可选）
+
+嫌「跑脚本 + 三条 git 命令」麻烦的话，双击 **`tools\auto-push.cmd`**。
+它会开一个小窗口一直盯着 `images\`，你一有动作它就自动：
+
+1. 跑 `tools\generate-manifest.ps1`（清单 / 缩略图 / 灯箱图 / 热力图，全自动）
+2. `git add` + `git commit`（提交信息自动生成，带上是哪几个文件）
+3. `git push`
+
+也就是说：**把图拖进 `images\2026\9月\`，剩下什么都不用管**，
+一分钟左右 GitHub Pages 自己就更新了。删图、改名、改 `daily.json` 同样会自动同步。
+
+### 一些细节
+
+- **防抖**：最后一次改动之后等 8 秒才动手，一次拖进去 20 张只会同步一遍。
+- **等文件写完**：复制大图时文件会先出现、再慢慢变大，脚本会等它稳定下来再生成缩略图，
+  不会出现「半张图」的缩略图。
+- **推送失败会自动重试**（默认每分钟一次）：代理软件忘了开、临时断网都不用管，
+  窗口开着就行，网络恢复后它自己补推。
+- **关掉窗口就停止**（也可以按 Ctrl+C）。
+- 日志写在 `logs\sync.log`，超过 1MB 自动轮转；`logs/` 已经进了 `.gitignore`，不会提交。
+- 它只监听 `images\` 和 `daily.json`；生成脚本写的是 `images.json` / `heatmap.json` /
+  `thumbs/` / `views/`，都不在监听范围内，所以**不会自己触发自己**。
+- 启动时它会先补同步一次，把上次关掉期间加的图一起处理掉。
+
+### 开机自动跑
+
+双击 **`tools\autostart.cmd`** 就行（会最小化启动）；再双击一次取消。
+它只是在 Windows 的「启动」文件夹里放 / 删一个快捷方式，不写注册表、不加计划任务。
+
+### 常用参数
+
+```powershell
+node tools/auto-push.mjs                  # 正常跑
+node tools/auto-push.mjs --no-push        # 只提交，不推送
+node tools/auto-push.mjs --oneshot        # 同步一次就退出
+node tools/auto-push.mjs --delay 30000    # 改成静默 30 秒后再同步
+node tools/auto-push.mjs --retry 300000   # 推送失败 5 分钟后重试
+```
+
+| 参数 | 作用 |
+|---|---|
+| `--delay <毫秒>` | 最后一次变化之后等多久再同步（默认 8000） |
+| `--retry <毫秒>` | 推送失败后多久重试（默认 60000） |
+| `--no-push` | 只提交，不推送 |
+| `--no-commit` | 只生成清单和缩略图，不提交 |
+| `--oneshot` | 同步一次就退出 |
+| `--no-initial` | 启动时不先补同步一次 |
+
+> 这些 `.cmd` 里**不写中文**（cmd.exe 按系统代码页读批处理，UTF-8 的中文会把
+> 命令行拆坏），中文提示都由它调用的 `.ps1` / `.mjs` 输出。
+
+---
+
 ## 本地预览
 
 `script.js` 用 `fetch` 读取 `images.json` / `heatmap.json`，所以**直接双击
@@ -386,6 +443,8 @@ git push
 ```
 
 推送后等 1~2 分钟自动部署完成。
+
+> 不想每次手动敲这几条？看上面的 **自动同步** 一节，双击一次就不用管了。
 
 ### 推送失败怎么排查
 
