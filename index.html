@@ -12,7 +12,7 @@
 
     <title>My Daily Paintrack</title>
 
-    <link rel="stylesheet" href="style.css?v=4b24e029">
+    <link rel="stylesheet" href="style.css?v=ece836cc">
 </head>
 
 <body>
@@ -250,20 +250,36 @@
                     </div>
 
 
-                    <div class="heatmap-legend">
+                    <!-- 图例：四档由低到高，鼠标悬停 / Tab 聚焦会显示该档的张数要求 -->
+                    <div class="heatmap-legend"
+                         id="heatmapLegend">
 
-                        <span class="legend-text">
-                            少
+                        <span class="legend-item"
+                              data-level="0"
+                              tabindex="0">
+                            <span class="hm-cell lv0"></span>
+                            <span class="legend-text">无</span>
                         </span>
 
-                        <span class="hm-cell lv0"></span>
-                        <span class="hm-cell lv1"></span>
-                        <span class="hm-cell lv2"></span>
-                        <span class="hm-cell lv3"></span>
-                        <span class="hm-cell lv4"></span>
+                        <span class="legend-item"
+                              data-level="1"
+                              tabindex="0">
+                            <span class="hm-cell lv1"></span>
+                            <span class="legend-text">低</span>
+                        </span>
 
-                        <span class="legend-text">
-                            多
+                        <span class="legend-item"
+                              data-level="2"
+                              tabindex="0">
+                            <span class="hm-cell lv2"></span>
+                            <span class="legend-text">中</span>
+                        </span>
+
+                        <span class="legend-item"
+                              data-level="3"
+                              tabindex="0">
+                            <span class="hm-cell lv3"></span>
+                            <span class="legend-text">高</span>
                         </span>
 
                     </div>
@@ -385,7 +401,7 @@
         </p>
     </noscript>
 
-    <script src="script.js?v=4b24e029"></script>
+    <script src="script.js?v=ece836cc"></script>
 
 </body>
 

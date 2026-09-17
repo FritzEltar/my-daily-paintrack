@@ -104,6 +104,7 @@
         heatmapRangeSwitch: document.getElementById('heatmapRangeSwitch'),
         heatmapStats: document.getElementById('heatmapStats'),
         heatmapRecent: document.getElementById('heatmapRecent'),
+        heatmapLegend: document.getElementById('heatmapLegend'),
         hmTip: document.getElementById('hmTip')
     };
 
@@ -652,15 +653,25 @@
         return (info.count || 0) > 0 || !!info.note;
     }
 
-    // 相对当天的最大值分 5 档，和 GitHub 的贡献图一个思路
-    function levelFor(count, max) {
+    // 四档，按当天新增的张数**绝对**分档（不看窗口里的最大值，
+    // 所以不同月份、不同颜色深浅的含义始终一致）：
+    //   0 无 —— 一张都没有
+    //   1 低 —— 1 张
+    //   2 中 —— 2 ~ 3 张
+    //   3 高 —— 4 张及以上
+    // 下面这张表同时也是图例的悬停说明，改档位规则只改这里。
+    var HEAT_LEVELS = [
+        { name: '无', rule: '没有新增' },
+        { name: '低', rule: '新增 1 张' },
+        { name: '中', rule: '新增 2 ~ 3 张' },
+        { name: '高', rule: '新增 4 张及以上' }
+    ];
+
+    function levelFor(count) {
         if (!count || count <= 0) { return 0; }
-        if (max <= 1) { return 4; }
-        var r = count / max;
-        if (r <= 0.25) { return 1; }
-        if (r <= 0.5) { return 2; }
-        if (r <= 0.75) { return 3; }
-        return 4;
+        if (count === 1) { return 1; }
+        if (count <= 3) { return 2; }
+        return 3;
     }
 
     // 热力图窗口：最近 N 周的整周（周日开头、本周周六结尾）
@@ -837,7 +848,6 @@
         el.heatmap.style.setProperty('--hm-cols', win.cols);
 
         var stats = computeHeatStats();
-        var max = stats.maxDay;
 
         renderHeatMonths(win);
 
@@ -855,8 +865,8 @@
             var isFuture = n > todayNum;
 
             var cell = document.createElement('span');
-            // 只有备注、没有张数的日子给最浅的一档，免得看起来像没记录
-            var level = count > 0 ? levelFor(count, max) : (info.note ? 1 : 0);
+            // 只有备注、没有张数的日子按「低」显示，免得看起来像没记录
+            var level = count > 0 ? levelFor(count) : (info.note ? 1 : 0);
             cell.className = 'hm-cell ' + (isFuture ? 'blank lv0' : 'lv' + level);
             cell.dataset.date = key;
             cell.dataset.count = String(count);
@@ -882,28 +892,24 @@
         renderHeatRecent();
     }
 
-    /* ---------------- 热力图：格子悬浮提示 ---------------- */
+    /* ---------------- 半透明气泡：格子 + 图例共用 ---------------- */
 
     function hideHeatTip() {
         if (el.hmTip) { el.hmTip.hidden = true; }
     }
 
-    function showHeatTip(cell) {
-        if (!el.hmTip || !cell) { return; }
-
-        var key = cell.dataset.date;
-        if (!key) { return; }
-
-        var count = Number(cell.dataset.count || 0);
-        var note = cell.dataset.note || '';
+    // anchor 是锚点元素；bold 是加粗的开头，rest 跟在同一个 · 后面，
+    // note 另起一行（小字说明）
+    function showTip(anchor, bold, rest, note) {
+        if (!el.hmTip || !anchor) { return; }
 
         el.hmTip.innerHTML = '';
 
         var line = document.createElement('div');
-        var day = document.createElement('b');
-        day.textContent = key;
-        line.appendChild(day);
-        line.appendChild(document.createTextNode(' · ' + count + ' 张'));
+        var head = document.createElement('b');
+        head.textContent = bold;
+        line.appendChild(head);
+        if (rest) { line.appendChild(document.createTextNode(' · ' + rest)); }
         el.hmTip.appendChild(line);
 
         if (note) {
@@ -914,8 +920,8 @@
 
         el.hmTip.hidden = false;
 
-        // 先显示再量尺寸，才能把提示框摆在格子正上方
-        var rect = cell.getBoundingClientRect();
+        // 先显示再量尺寸，才能把提示框摆在锚点正上方
+        var rect = anchor.getBoundingClientRect();
         var tip = el.hmTip.getBoundingClientRect();
 
         var left = rect.left + rect.width / 2 - tip.width / 2;
@@ -928,9 +934,32 @@
         el.hmTip.style.top = Math.round(top) + 'px';
     }
 
+    function showHeatTip(cell) {
+        if (!cell || !cell.dataset.date) { return; }
+        showTip(
+            cell,
+            cell.dataset.date,
+            Number(cell.dataset.count || 0) + ' 张',
+            cell.dataset.note || ''
+        );
+    }
+
+    // 图例：悬停哪一档，就说清那一档要多少张
+    function showLegendTip(item) {
+        var info = HEAT_LEVELS[Number(item.dataset.level)];
+        if (!info) { return; }
+        showTip(item, info.name, info.rule, '');
+    }
+
     function isHeatCell(node) {
         return !!(node && node.classList && node.classList.contains('hm-cell') &&
             !node.classList.contains('blank'));
+    }
+
+    function legendItemOf(node) {
+        if (!node || !node.closest) { return null; }
+        var item = node.closest('.legend-item');
+        return (item && el.heatmapLegend && el.heatmapLegend.contains(item)) ? item : null;
     }
 
     function initHeatmapTip() {
@@ -945,6 +974,21 @@
             if (isHeatCell(e.target)) { showHeatTip(e.target); }
         });
         el.heatmapGrid.addEventListener('focusout', hideHeatTip);
+
+        // 图例走同一套气泡
+        if (el.heatmapLegend) {
+            el.heatmapLegend.addEventListener('mouseover', function (e) {
+                var item = legendItemOf(e.target);
+                if (item) { showLegendTip(item); }
+            });
+            el.heatmapLegend.addEventListener('mouseout', hideHeatTip);
+
+            el.heatmapLegend.addEventListener('focusin', function (e) {
+                var item = legendItemOf(e.target);
+                if (item) { showLegendTip(item); }
+            });
+            el.heatmapLegend.addEventListener('focusout', hideHeatTip);
+        }
 
         window.addEventListener('scroll', hideHeatTip, true);
         window.addEventListener('resize', hideHeatTip);

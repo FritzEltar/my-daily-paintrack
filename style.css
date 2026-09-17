@@ -347,23 +347,21 @@ body.side-hidden .side-panel {
     cursor: default;
 }
 
+/* 四档配色：无 / 低（1 张）/ 中（2~3 张）/ 高（4 张及以上） */
+
 .hm-cell.lv0 {
     background: #ececec;
 }
 
 .hm-cell.lv1 {
-    background: #cfd7ff;
+    background: #b9c6ff;
 }
 
 .hm-cell.lv2 {
-    background: #a3b0ff;
+    background: #7b93ff;
 }
 
 .hm-cell.lv3 {
-    background: #738aff;
-}
-
-.hm-cell.lv4 {
     background: #4d6bfe;
 }
 
@@ -394,9 +392,9 @@ body.side-hidden .side-panel {
 
     align-items: center;
 
-    justify-content: flex-end;
+    justify-content: space-between;
 
-    gap: 3px;
+    gap: 4px;
 
     margin-top: 12px;
 }
@@ -407,12 +405,36 @@ body.side-hidden .side-panel {
     height: 10px;
 }
 
+/* 图例本身也能悬停 / Tab 聚焦，用来查这一档的张数要求 */
+.legend-item {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    padding: 2px 3px;
+
+    border-radius: 6px;
+
+    cursor: help;
+}
+
+.legend-item:hover .hm-cell,
+.legend-item:focus-visible .hm-cell {
+    outline: 1px solid #999;
+}
+
+.legend-item:focus-visible {
+    outline: 2px solid #4d6bfe;
+
+    outline-offset: 1px;
+}
+
 .legend-text {
     font-size: 11px;
 
     color: #999;
-
-    margin: 0 3px;
 }
 
 .heatmap-stats {
@@ -1396,19 +1418,15 @@ body.dark .hm-cell.lv0 {
 }
 
 body.dark .hm-cell.lv1 {
-    background: #26305e;
+    background: #2c3a75;
 }
 
 body.dark .hm-cell.lv2 {
-    background: #3243a3;
+    background: #4055cf;
 }
 
 body.dark .hm-cell.lv3 {
-    background: #3f5ae0;
-}
-
-body.dark .hm-cell.lv4 {
-    background: #7b93ff;
+    background: #8ea2ff;
 }
 
 body.dark .heatmap-grid .hm-cell.blank {
@@ -1419,9 +1437,14 @@ body.dark .hm-cell:hover {
     outline-color: #777;
 }
 
+body.dark .legend-item:hover .hm-cell,
+body.dark .legend-item:focus-visible .hm-cell {
+    outline-color: #777;
+}
+
 body.dark .hm-cell.today {
     box-shadow:
-        0 0 0 1px #7b93ff;
+        0 0 0 1px #8ea2ff;
 }
 
 body.dark .heatmap-month,
