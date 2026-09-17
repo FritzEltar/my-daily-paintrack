@@ -323,6 +323,15 @@ git push
 
 推送后等 1~2 分钟自动部署完成。
 
+### 推送失败怎么排查
+
+| 报错 | 原因 | 怎么办 |
+|---|---|---|
+| `schannel: failed to receive handshake, SSL/TLS connection failed` | **九成是 remote 地址少写了 `.com`**（写成了 `https://github/...`）。代理连不上这个主机就直接断开，git 却报成 TLS 握手失败，很误导人 | `git remote -v` 看地址；不对就 `git remote set-url origin https://github.com/FritzEltar/my-daily-paintrack.git` |
+| `Connection was reset` / `Failed to connect to 127.0.0.1 port 7897` | 代理软件没开 | 打开代理，或 `git config --unset http.proxy` 走直连 |
+| `Repository not found` | 仓库还没在 GitHub 上建，或名字拼错 | 先按上面第 1 步建仓库 |
+| `failed to push some refs ... non-fast-forward` | 建仓库时勾了 "Add a README file"，远端已经有提交 | `git pull --rebase origin main` 之后再 `git push` |
+
 ---
 
 ## 更新后看不到变化？（缓存问题）
