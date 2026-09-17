@@ -1,0 +1,1708 @@
+/* =========================
+   基础设置
+========================= */
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+
+    /* 与 git-scm.com 同款字体栈。
+       那个站没有加载任何 web font，正文就是这一串；本机装了 Georgia，
+       所以英文会和 git-scm.com 一样落在 Georgia 上（衬线体）。
+       这几个西文字体都没有中文字形，中文会自动回退到微软雅黑。 */
+    font-family:
+        Adelle,
+        "Roboto Slab",
+        "DejaVu Serif",
+        Georgia,
+        "Times New Roman",
+        "Microsoft YaHei",
+        sans-serif;
+
+    background: #f5f5f5;
+
+    color: #222;
+
+    transition:
+        background 0.3s,
+        color 0.3s;
+}
+
+
+/* 表单控件默认不继承字体，这里统一成和正文一致 */
+button,
+input,
+textarea,
+select {
+    font-family: inherit;
+}
+
+
+code {
+    font-family:
+        Courier,
+        monospace;
+}
+
+
+/* =========================
+   顶部导航
+========================= */
+
+.header {
+    position: sticky;
+
+    top: 0;
+
+    z-index: 100;
+
+    background: rgba(255, 255, 255, 0.92);
+
+    backdrop-filter: blur(10px);
+
+    border-bottom: 1px solid #ddd;
+}
+
+.header-inner {
+    max-width: 1240px;
+
+    margin: auto;
+
+    height: 65px;
+
+    padding: 0 20px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+}
+
+.logo {
+    color: inherit;
+
+    text-decoration: none;
+
+    font-size: 21px;
+
+    font-weight: bold;
+}
+
+.dark-mode-btn {
+    border: none;
+
+    background: transparent;
+
+    font-size: 22px;
+
+    cursor: pointer;
+
+    padding: 8px;
+
+    border-radius: 50%;
+}
+
+.dark-mode-btn:hover {
+    background: #eee;
+}
+
+
+/* =========================
+   主容器
+========================= */
+
+.container {
+    max-width: 1240px;
+
+    margin: auto;
+
+    padding: 40px 20px;
+}
+
+
+/* =========================
+   左右两栏布局
+   （右侧热力图只在大类 / 图集列表页出现，
+     进入某个图集看图时 body 会加上 side-hidden）
+========================= */
+
+.layout {
+    display: flex;
+
+    align-items: flex-start;
+
+    gap: 28px;
+}
+
+.layout-main {
+    flex: 1 1 auto;
+
+    min-width: 0;
+}
+
+.side-panel {
+    flex: 0 0 340px;
+
+    width: 340px;
+
+    /* 跟着页面滚动，热力图一直在视野里 */
+    position: sticky;
+
+    top: 88px;
+}
+
+body.side-hidden .side-panel {
+    display: none;
+}
+
+
+/* =========================
+   右侧栏面板
+========================= */
+
+.panel {
+    background: white;
+
+    border-radius: 14px;
+
+    padding: 16px;
+
+    box-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.09);
+}
+
+.panel-title {
+    margin: 0 0 5px;
+
+    font-size: 17px;
+}
+
+.panel-note {
+    margin: 0 0 12px;
+
+    font-size: 12px;
+
+    line-height: 1.5;
+
+    color: #999;
+}
+
+
+/* =========================
+   热力图：范围切换
+========================= */
+
+.range-switch {
+    display: flex;
+
+    gap: 6px;
+
+    margin-bottom: 13px;
+}
+
+.range-btn {
+    flex: 1 1 0;
+
+    border: 1px solid #ddd;
+
+    background: #fafafa;
+
+    color: #555;
+
+    font-size: 12px;
+
+    padding: 5px 0;
+
+    border-radius: 7px;
+
+    cursor: pointer;
+
+    transition: 0.15s;
+}
+
+.range-btn:hover {
+    background: #f0f0f0;
+}
+
+.range-btn.active {
+    background: #4d6bfe;
+
+    border-color: #4d6bfe;
+
+    color: white;
+}
+
+
+/* =========================
+   热力图本体
+========================= */
+
+.heatmap-scroll {
+    overflow-x: auto;
+
+    padding-bottom: 4px;
+}
+
+.heatmap {
+    /* 格子尺寸与列数，列数由脚本写在 style 上 */
+    --hm-cell: 9px;
+    --hm-gap: 2px;
+    --hm-label: 12px;
+    --hm-labelgap: 6px;
+    --hm-cols: 26;
+
+    display: inline-block;
+
+    min-width: 100%;
+}
+
+.heatmap-months {
+    display: grid;
+
+    grid-template-columns:
+        repeat(var(--hm-cols), var(--hm-cell));
+
+    column-gap: var(--hm-gap);
+
+    height: 15px;
+
+    /* 让出左边星期标签那一列 */
+    margin-left:
+        calc(var(--hm-label) + var(--hm-labelgap));
+
+    font-size: 10px;
+
+    color: #999;
+}
+
+.heatmap-month {
+    grid-row: 1;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    line-height: 15px;
+}
+
+.heatmap-body {
+    display: flex;
+
+    gap: var(--hm-labelgap);
+}
+
+.heatmap-weekdays {
+    display: grid;
+
+    grid-template-rows:
+        repeat(7, var(--hm-cell));
+
+    row-gap: var(--hm-gap);
+
+    width: var(--hm-label);
+
+    font-size: 9px;
+
+    color: #999;
+
+    line-height: var(--hm-cell);
+
+    text-align: right;
+}
+
+.heatmap-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(var(--hm-cols), var(--hm-cell));
+
+    grid-template-rows:
+        repeat(7, var(--hm-cell));
+
+    /* 一天一格，逐列填满一周七天 */
+    grid-auto-flow: column;
+
+    gap: var(--hm-gap);
+}
+
+.hm-cell {
+    display: block;
+
+    width: var(--hm-cell, 9px);
+
+    height: var(--hm-cell, 9px);
+
+    border-radius: 2px;
+
+    background: #ececec;
+
+    cursor: default;
+}
+
+.hm-cell.lv0 {
+    background: #ececec;
+}
+
+.hm-cell.lv1 {
+    background: #cfd7ff;
+}
+
+.hm-cell.lv2 {
+    background: #a3b0ff;
+}
+
+.hm-cell.lv3 {
+    background: #738aff;
+}
+
+.hm-cell.lv4 {
+    background: #4d6bfe;
+}
+
+/* 今天那一格描个边，方便定位 */
+.hm-cell.today {
+    box-shadow:
+        0 0 0 1px #4d6bfe;
+}
+
+.hm-cell:hover {
+    outline: 1px solid #999;
+
+    outline-offset: 0;
+}
+
+/* 未来 / 范围之外的日子：留空 */
+.heatmap-grid .hm-cell.blank {
+    background: transparent;
+}
+
+
+/* =========================
+   热力图：图例 / 统计 / 最近记录
+========================= */
+
+.heatmap-legend {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 3px;
+
+    margin-top: 12px;
+}
+
+.heatmap-legend .hm-cell {
+    width: 10px;
+
+    height: 10px;
+}
+
+.legend-text {
+    font-size: 11px;
+
+    color: #999;
+
+    margin: 0 3px;
+}
+
+.heatmap-stats {
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 8px;
+
+    margin-top: 12px;
+}
+
+.hm-stat {
+    background: #f7f7f7;
+
+    border-radius: 9px;
+
+    padding: 8px 10px;
+}
+
+.hm-stat-num {
+    display: block;
+
+    font-size: 17px;
+
+    font-weight: bold;
+
+    line-height: 1.2;
+}
+
+.hm-stat-label {
+    display: block;
+
+    font-size: 11px;
+
+    color: #999;
+
+    margin-top: 2px;
+}
+
+.heatmap-recent {
+    margin-top: 13px;
+
+    padding-top: 11px;
+
+    border-top: 1px solid #eee;
+}
+
+.recent-title {
+    margin: 0 0 6px;
+
+    font-size: 12px;
+
+    color: #999;
+}
+
+.recent-item {
+    display: flex;
+
+    align-items: baseline;
+
+    gap: 8px;
+
+    font-size: 12px;
+
+    padding: 3px 0;
+}
+
+.recent-date {
+    color: #666;
+
+    font-variant-numeric: tabular-nums;
+
+    flex: none;
+}
+
+.recent-count {
+    color: #4d6bfe;
+
+    font-weight: bold;
+
+    flex: none;
+}
+
+.recent-note {
+    color: #999;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+.recent-empty {
+    font-size: 12px;
+
+    line-height: 1.6;
+
+    color: #aaa;
+}
+
+
+/* =========================
+   热力图：格子悬浮提示
+========================= */
+
+.hm-tip {
+    position: fixed;
+
+    z-index: 1200;
+
+    max-width: 240px;
+
+    background: rgba(20, 20, 20, 0.94);
+
+    color: white;
+
+    font-size: 12px;
+
+    line-height: 1.5;
+
+    padding: 6px 11px;
+
+    border-radius: 8px;
+
+    box-shadow:
+        0 5px 18px rgba(0, 0, 0, 0.3);
+
+    pointer-events: none;
+}
+
+.hm-tip[hidden] {
+    display: none;
+}
+
+.hm-tip b {
+    color: #a9b8ff;
+}
+
+
+/* =========================
+   搜索框
+========================= */
+
+.search-section {
+    margin-bottom: 25px;
+}
+
+#searchInput {
+    width: 100%;
+
+    padding: 15px 18px;
+
+    font-size: 16px;
+
+    border: 1px solid #ccc;
+
+    border-radius: 12px;
+
+    outline: none;
+
+    background: white;
+
+    color: #222;
+
+    transition: border 0.2s;
+}
+
+#searchInput:focus {
+    border-color: #555;
+}
+
+
+/* =========================
+   面包屑
+========================= */
+
+.breadcrumb {
+    display: flex;
+
+    align-items: center;
+
+    flex-wrap: wrap;
+
+    gap: 8px;
+
+    margin-bottom: 22px;
+
+    font-size: 15px;
+
+    min-height: 24px;
+}
+
+.crumb {
+    color: #888;
+}
+
+.crumb-link {
+    border: none;
+
+    background: transparent;
+
+    padding: 2px 4px;
+
+    margin: 0;
+
+    font: inherit;
+
+    color: #444;
+
+    cursor: pointer;
+
+    border-radius: 6px;
+
+    text-decoration: underline;
+
+    text-underline-offset: 3px;
+}
+
+.crumb-link:hover {
+    background: #ececec;
+
+    color: #111;
+}
+
+.crumb-current {
+    color: #222;
+
+    font-weight: bold;
+}
+
+.crumb-sep {
+    color: #bbb;
+}
+
+
+/* =========================
+   封面网格（大类 / 图集）
+========================= */
+
+.cover-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap: 22px;
+}
+
+.cover-card {
+    background: white;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.09);
+
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
+}
+
+.cover-card:hover {
+    transform: translateY(-5px);
+
+    box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.16);
+}
+
+.cover-image {
+    width: 100%;
+
+    aspect-ratio: 16 / 10;
+
+    overflow: hidden;
+
+    background: #e9e9e9;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+}
+
+.cover-image img {
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: cover;
+
+    display: block;
+
+    transition: transform 0.35s;
+}
+
+.cover-card:hover .cover-image img {
+    transform: scale(1.04);
+}
+
+.cover-fallback {
+    color: #999;
+
+    font-size: 14px;
+}
+
+.cover-info {
+    padding: 14px 16px 16px;
+}
+
+.cover-title {
+    margin: 0 0 6px;
+
+    font-size: 17px;
+
+    font-weight: bold;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+.cover-subtitle {
+    margin: 0;
+
+    font-size: 13px;
+
+    color: #888;
+}
+
+
+/* =========================
+   角色页签（图集内部）
+========================= */
+
+.role-section {
+    display: flex;
+
+    align-items: center;
+
+    /* 页签整行水平居中 */
+    justify-content: center;
+
+    flex-wrap: wrap;
+
+    gap: 10px;
+
+    margin-bottom: 22px;
+
+    padding-bottom: 16px;
+
+    border-bottom: 1px solid #eee;
+}
+
+/* 搜索时不受角色筛选限制，页签整体淡化 */
+.role-section.searching .role-tab {
+    opacity: 0.45;
+}
+
+.role-tab {
+    border: none;
+
+    background: #eee;
+
+    color: #444;
+
+    padding: 8px 18px;
+
+    border-radius: 18px;
+
+    cursor: pointer;
+
+    font-size: 14px;
+
+    line-height: 1.4;
+
+    /* 长英文名不换行、不截断：页签跟着内容撑开 */
+    white-space: nowrap;
+
+    text-align: center;
+
+    transition: 0.2s;
+}
+
+.role-tab:hover {
+    background: #e0e0e0;
+}
+
+.role-tab.active {
+    background: #222;
+
+    color: white;
+}
+
+
+/* =========================
+   结果信息
+========================= */
+
+.result-info {
+    margin-bottom: 15px;
+
+    color: #777;
+
+    font-size: 14px;
+}
+
+.result-info.error {
+    color: #c0392b;
+}
+
+
+/* =========================
+   图片网格
+========================= */
+
+.gallery {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, 1fr);
+
+    gap: 20px;
+}
+
+
+/* =========================
+   图片卡片
+========================= */
+
+.image-card {
+    background: white;
+
+    border-radius: 12px;
+
+    overflow: hidden;
+
+    cursor: pointer;
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.08);
+
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
+}
+
+.image-card:hover {
+    transform: translateY(-5px);
+
+    box-shadow:
+        0 8px 25px rgba(0, 0, 0, 0.14);
+}
+
+.image-wrapper {
+    width: 100%;
+
+    aspect-ratio: 4 / 3;
+
+    overflow: hidden;
+
+    background: #eee;
+}
+
+.image-wrapper img {
+    width: 100%;
+
+    height: 100%;
+
+    object-fit: cover;
+
+    display: block;
+
+    transition: transform 0.3s;
+}
+
+.image-card:hover img {
+    transform: scale(1.05);
+}
+
+.image-info {
+    padding: 13px 15px;
+}
+
+.image-title {
+    margin: 0 0 5px;
+
+    font-size: 16px;
+
+    font-weight: bold;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+}
+
+.image-category {
+    font-size: 13px;
+
+    color: #888;
+}
+
+
+/* =========================
+   标签
+========================= */
+
+.image-tags {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 5px;
+
+    margin-top: 8px;
+}
+
+.image-tag {
+    font-size: 11px;
+
+    color: #666;
+
+    background: #f0f0f0;
+
+    padding: 2px 8px;
+
+    border-radius: 10px;
+}
+
+
+/* =========================
+   加载中
+========================= */
+
+.loading {
+    grid-column: 1 / -1;
+
+    text-align: center;
+
+    padding: 60px 20px;
+
+    color: #888;
+}
+
+
+/* =========================
+   空结果
+========================= */
+
+.empty-message {
+    text-align: center;
+
+    padding: 80px 20px;
+}
+
+.empty-icon {
+    font-size: 50px;
+
+    margin-bottom: 15px;
+}
+
+.empty-message h2 {
+    margin-bottom: 8px;
+}
+
+.empty-message p {
+    color: #888;
+
+    line-height: 1.7;
+}
+
+.empty-message code {
+    background: #ececec;
+
+    padding: 2px 7px;
+
+    border-radius: 5px;
+
+    font-size: 13px;
+}
+
+
+/* =========================
+   分页
+========================= */
+
+.pagination {
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    gap: 20px;
+
+    margin: 40px 0 20px;
+}
+
+.page-btn {
+    border: 1px solid #ccc;
+
+    background: white;
+
+    padding: 10px 18px;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 14px;
+}
+
+.page-btn:hover:not(:disabled) {
+    background: #eee;
+}
+
+.page-btn:disabled {
+    opacity: 0.4;
+
+    cursor: not-allowed;
+}
+
+#pageInfo {
+    min-width: 70px;
+
+    text-align: center;
+}
+
+
+/* =========================
+   Modal
+========================= */
+
+.modal {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 1000;
+
+    display: none;
+
+    align-items: center;
+
+    justify-content: center;
+
+    padding: 20px;
+
+    background:
+        rgba(0, 0, 0, 0.8);
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    position: relative;
+
+    max-width: 1000px;
+
+    width: 100%;
+
+    max-height: 95vh;
+
+    overflow: auto;
+
+    background: white;
+
+    border-radius: 15px;
+
+    padding: 20px;
+}
+
+.modal-content > img {
+    width: 100%;
+
+    max-height: 65vh;
+
+    object-fit: contain;
+
+    display: block;
+
+    margin: auto;
+
+    border-radius: 8px;
+
+    transition: filter 0.25s;
+}
+
+/* 大图还在下载时，先显示放大的缩略图并轻微模糊，
+   让人一眼看出"还在加载"，而不是盯着白框干等 */
+#modalImage.is-preview {
+    filter: blur(3px);
+}
+
+.modal-loading {
+    position: absolute;
+
+    left: 50%;
+
+    top: 18px;
+
+    transform: translateX(-50%);
+
+    z-index: 6;
+
+    background: rgba(0, 0, 0, 0.62);
+
+    color: white;
+
+    font-size: 12px;
+
+    padding: 5px 13px;
+
+    border-radius: 20px;
+
+    white-space: nowrap;
+
+    pointer-events: none;
+}
+
+.close-btn {
+    position: absolute;
+
+    top: 10px;
+
+    right: 10px;
+
+    z-index: 5;
+
+    width: 40px;
+
+    height: 40px;
+
+    border: none;
+
+    border-radius: 50%;
+
+    background: rgba(0, 0, 0, 0.65);
+
+    color: white;
+
+    font-size: 28px;
+
+    line-height: 1;
+
+    cursor: pointer;
+}
+
+.modal-info {
+    padding: 15px 5px 5px;
+}
+
+.modal-info h2 {
+    margin: 0 0 8px;
+}
+
+.modal-info p {
+    color: #777;
+}
+
+
+/* =========================
+   Modal 按钮
+========================= */
+
+.modal-buttons {
+    display: flex;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+}
+
+.modal-btn {
+    display: inline-block;
+
+    border: none;
+
+    text-decoration: none;
+
+    background: #222;
+
+    color: white;
+
+    padding: 10px 15px;
+
+    border-radius: 8px;
+
+    cursor: pointer;
+
+    font-size: 14px;
+}
+
+.modal-btn:hover {
+    opacity: 0.8;
+}
+
+
+/* =========================
+   页脚
+========================= */
+
+.footer {
+    text-align: center;
+
+    padding: 35px 20px;
+
+    margin-top: 50px;
+
+    color: #888;
+
+    border-top: 1px solid #ddd;
+
+    font-size: 13px;
+}
+
+.footer p {
+    margin: 0 0 6px;
+}
+
+.footer p:last-child {
+    margin-bottom: 0;
+}
+
+
+/* =========================
+   页脚：Powered by ... — 🐋 Built with ...
+========================= */
+
+.footer-meta {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-wrap: wrap;
+
+    gap: 9px;
+}
+
+.footer-sep {
+    color: #ccc;
+
+    user-select: none;
+}
+
+.credit {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    font-size: 12px;
+
+    color: #aaa;
+
+    letter-spacing: 0.02em;
+}
+
+.credit-mark {
+    width: 19px;
+
+    height: 14px;
+
+    flex: none;
+
+    fill: #b9b3a8;
+
+    transition: fill 0.25s;
+}
+
+.credit:hover .credit-mark {
+    fill: #4d6bfe;
+}
+
+.credit a {
+    color: inherit;
+
+    text-decoration: underline;
+
+    text-underline-offset: 3px;
+
+    transition: color 0.2s;
+}
+
+.credit a:hover {
+    color: #4d6bfe;
+}
+
+body.dark .footer-sep {
+    color: #444;
+}
+
+body.dark .credit-mark {
+    fill: #6b6558;
+}
+
+body.dark .credit a:hover {
+    color: #7b93ff;
+}
+
+
+/* =========================
+   深色模式
+========================= */
+
+body.dark {
+    background: #121212;
+
+    color: #eee;
+}
+
+body.dark .header {
+    background: rgba(25, 25, 25, 0.92);
+
+    border-color: #333;
+}
+
+body.dark .dark-mode-btn:hover {
+    background: #333;
+}
+
+body.dark #searchInput {
+    background: #1e1e1e;
+
+    color: #eee;
+
+    border-color: #444;
+}
+
+body.dark .crumb {
+    color: #888;
+}
+
+body.dark .crumb-link {
+    color: #ccc;
+}
+
+body.dark .crumb-link:hover {
+    background: #2b2b2b;
+
+    color: #fff;
+}
+
+body.dark .crumb-current {
+    color: #eee;
+}
+
+body.dark .crumb-sep {
+    color: #555;
+}
+
+body.dark .cover-card {
+    background: #1e1e1e;
+
+    box-shadow:
+        0 2px 12px rgba(0, 0, 0, 0.45);
+}
+
+body.dark .cover-image {
+    background: #292929;
+}
+
+body.dark .cover-subtitle {
+    color: #999;
+}
+
+body.dark .role-section {
+    border-color: #2f2f2f;
+}
+
+body.dark .role-tab {
+    background: #2b2b2b;
+
+    color: #ddd;
+}
+
+body.dark .role-tab:hover {
+    background: #383838;
+}
+
+body.dark .role-tab.active {
+    background: #eee;
+
+    color: #111;
+}
+
+body.dark .image-card {
+    background: #1e1e1e;
+
+    box-shadow:
+        0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+body.dark .image-wrapper {
+    background: #292929;
+}
+
+body.dark .image-tag {
+    background: #2b2b2b;
+
+    color: #aaa;
+}
+
+body.dark .empty-message code {
+    background: #2b2b2b;
+}
+
+body.dark .page-btn {
+    background: #222;
+
+    color: #eee;
+
+    border-color: #444;
+}
+
+body.dark .page-btn:hover:not(:disabled) {
+    background: #333;
+}
+
+body.dark .modal-content {
+    background: #1e1e1e;
+}
+
+body.dark .footer {
+    border-color: #333;
+}
+
+
+/* 深色模式：右侧栏与热力图 */
+
+body.dark .panel {
+    background: #1e1e1e;
+
+    box-shadow:
+        0 2px 12px rgba(0, 0, 0, 0.45);
+}
+
+body.dark .panel-note {
+    color: #888;
+}
+
+body.dark .range-btn {
+    background: #262626;
+
+    border-color: #3a3a3a;
+
+    color: #ccc;
+}
+
+body.dark .range-btn:hover {
+    background: #303030;
+}
+
+body.dark .range-btn.active {
+    background: #4d6bfe;
+
+    border-color: #4d6bfe;
+
+    color: white;
+}
+
+body.dark .hm-cell.lv0 {
+    background: #2e2e2e;
+}
+
+body.dark .hm-cell.lv1 {
+    background: #26305e;
+}
+
+body.dark .hm-cell.lv2 {
+    background: #3243a3;
+}
+
+body.dark .hm-cell.lv3 {
+    background: #3f5ae0;
+}
+
+body.dark .hm-cell.lv4 {
+    background: #7b93ff;
+}
+
+body.dark .heatmap-grid .hm-cell.blank {
+    background: transparent;
+}
+
+body.dark .hm-cell:hover {
+    outline-color: #777;
+}
+
+body.dark .hm-cell.today {
+    box-shadow:
+        0 0 0 1px #7b93ff;
+}
+
+body.dark .heatmap-month,
+body.dark .heatmap-weekdays,
+body.dark .legend-text,
+body.dark .hm-stat-label,
+body.dark .recent-title {
+    color: #888;
+}
+
+body.dark .hm-stat {
+    background: #262626;
+}
+
+body.dark .heatmap-recent {
+    border-color: #2f2f2f;
+}
+
+body.dark .recent-date {
+    color: #aaa;
+}
+
+body.dark .recent-note {
+    color: #888;
+}
+
+body.dark .recent-empty {
+    color: #777;
+}
+
+body.dark .hm-tip {
+    background: rgba(240, 240, 240, 0.95);
+
+    color: #111;
+}
+
+body.dark .hm-tip b {
+    color: #3a4fd0;
+}
+
+
+/* =========================
+   手机端
+========================= */
+
+@media (max-width: 900px) {
+
+    .gallery {
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .container {
+        padding: 30px 15px;
+    }
+
+    .hero h1 {
+        font-size: 30px;
+    }
+
+    .gallery {
+        grid-template-columns:
+            repeat(2, 1fr);
+
+        gap: 12px;
+    }
+
+    .image-info {
+        padding: 10px;
+    }
+
+    .image-title {
+        font-size: 14px;
+    }
+
+    .modal-content {
+        padding: 12px;
+    }
+
+}
+
+
+@media (max-width: 400px) {
+
+    .gallery {
+        grid-template-columns:
+            repeat(1, 1fr);
+    }
+
+}
+
+
+/* =========================
+   封面网格 / 面包屑 响应式
+========================= */
+
+@media (max-width: 900px) {
+
+    .cover-grid {
+        grid-template-columns:
+            repeat(2, 1fr);
+
+        gap: 18px;
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .cover-grid {
+        grid-template-columns:
+            repeat(1, 1fr);
+
+        gap: 16px;
+    }
+
+    .breadcrumb {
+        font-size: 14px;
+
+        margin-bottom: 18px;
+    }
+
+}
+
+
+@media (max-width: 400px) {
+
+    .role-tab {
+        font-size: 13px;
+
+        padding: 6px 12px;
+    }
+
+}
+
+
+/* =========================
+   响应式：右侧栏收到底部
+   （放不下 340px 侧栏时，图库在上、热力图在下）
+========================= */
+
+@media (max-width: 1080px) {
+
+    .layout {
+        display: block;
+    }
+
+    .side-panel {
+        position: static;
+
+        width: auto;
+
+        flex: none;
+
+        margin-top: 34px;
+    }
+
+    /* 整栏都归热力图了，格子可以大一点 */
+    .heatmap {
+        --hm-cell: 12px;
+        --hm-gap: 3px;
+        --hm-label: 14px;
+        --hm-labelgap: 7px;
+    }
+
+}
+
+
+@media (max-width: 650px) {
+
+    .panel {
+        padding: 13px;
+    }
+
+    .heatmap-months {
+        font-size: 9px;
+    }
+
+}
