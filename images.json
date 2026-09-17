@@ -3,18 +3,31 @@
     "groups":  [
                    {
                        "name":  "2026",
-                       "cover":  "images/2026/9月/8576fad38a4c1922af16ca68febeb6b2.png",
-                       "coverThumb":  "thumbs/2026/9月/8576fad38a4c1922af16ca68febeb6b2.jpg",
+                       "cover":  "images/2026/9月/1.png",
+                       "coverThumb":  "thumbs/2026/9月/1.jpg",
                        "collectionCount":  1,
-                       "imageCount":  1,
+                       "imageCount":  2,
                        "collections":  [
                                            {
                                                "name":  "9月",
                                                "path":  "2026/9月",
-                                               "cover":  "images/2026/9月/8576fad38a4c1922af16ca68febeb6b2.png",
-                                               "coverThumb":  "thumbs/2026/9月/8576fad38a4c1922af16ca68febeb6b2.jpg",
-                                               "imageCount":  1,
+                                               "cover":  "images/2026/9月/1.png",
+                                               "coverThumb":  "thumbs/2026/9月/1.jpg",
+                                               "imageCount":  2,
                                                "images":  [
+                                                              {
+                                                                  "file":  "images/2026/9月/1.png",
+                                                                  "thumb":  "thumbs/2026/9月/1.jpg",
+                                                                  "view":  "views/2026/9月/1.jpg",
+                                                                  "title":  "1",
+                                                                  "description":  "",
+                                                                  "tags":  [
+
+                                                                           ],
+                                                                  "date":  "2026-09-17",
+                                                                  "w":  600,
+                                                                  "h":  900
+                                                              },
                                                               {
                                                                   "file":  "images/2026/9月/8576fad38a4c1922af16ca68febeb6b2.png",
                                                                   "thumb":  "thumbs/2026/9月/8576fad38a4c1922af16ca68febeb6b2.jpg",
