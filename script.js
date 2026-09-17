@@ -56,6 +56,7 @@
     var HEATMAP_URL = 'heatmap.json';   // 每日热力图数据
     var STORAGE_KEY = 'paintrack-dark';
     var HEATMAP_WEEKS = 26;             // 热力图默认显示多少周（半年）
+    var NOTES_GROUP = '备注';            // 固定排在最后的大类，备注面板的入口指向它
 
     /* ---------------- DOM ---------------- */
 
@@ -68,6 +69,9 @@
 
         collectionsView: document.getElementById('collectionsView'),
         collectionsGrid: document.getElementById('collectionsGrid'),
+        collectionsEmpty: document.getElementById('collectionsEmpty'),
+        collectionsEmptyTitle: document.getElementById('collectionsEmptyTitle'),
+        collectionsEmptyText: document.getElementById('collectionsEmptyText'),
 
         imagesView: document.getElementById('imagesView'),
         searchInput: document.getElementById('searchInput'),
@@ -105,6 +109,7 @@
         heatmapStats: document.getElementById('heatmapStats'),
         heatmapRecent: document.getElementById('heatmapRecent'),
         heatmapLegend: document.getElementById('heatmapLegend'),
+        heatmapNotes: document.getElementById('heatmapNotes'),
         hmTip: document.getElementById('hmTip')
     };
 
@@ -291,6 +296,10 @@
         show(el.imagesView, false);
         show(el.statusMessage, false);
 
+        // 备注块里的「查看备注 →」要等清单到位才知道有没有这个大类，
+        // 所以每回切视图都顺手刷一下（内容很少，代价可以忽略）
+        renderHeatNotes();
+
         var group = findGroup(view.group);
 
         if (!group) {
@@ -379,11 +388,16 @@
         el.groupsGrid.innerHTML = '';
 
         data.groups.forEach(function (group) {
+            var empty = group.imageCount === 0;
+
             el.groupsGrid.appendChild(createCoverCard({
                 title: group.name,
-                subtitle: group.collectionCount + ' 个图集 · ' + group.imageCount + ' 张图',
+                subtitle: empty
+                    ? '还空着'
+                    : group.collectionCount + ' 个图集 · ' + group.imageCount + ' 张图',
                 cover: group.coverThumb || group.cover,
                 coverFallback: group.cover,
+                emptyText: group.name === NOTES_GROUP ? '留给备注' : '还没有内容',
                 alt: group.name,
                 onClick: function () { navigate(group.name, null); }
             }));
@@ -406,7 +420,17 @@
     function renderCollections(group) {
         el.collectionsGrid.innerHTML = '';
 
-        if (group.collections.length === 0) {
+        var isEmpty = group.collections.length === 0;
+        show(el.collectionsEmpty, isEmpty);
+
+        if (isEmpty) {
+            // 「备注」是留着的占位大类，把话说清楚一点
+            el.collectionsEmptyTitle.textContent = group.name + ' 还是空的';
+            el.collectionsEmptyText.innerHTML = group.name === NOTES_GROUP
+                ? '这块是留给备注的，现在还没往里放东西。<br>' +
+                  '以后按 <code>images/备注/图集名/</code> 放就行。'
+                : '按 <code>images/大类/图集名/</code> 放图片，' +
+                  '然后双击 <code>tools\\update-gallery.cmd</code>。';
             return;
         }
 
@@ -439,27 +463,36 @@
         var wrap = document.createElement('div');
         wrap.className = 'cover-image';
 
-        var img = document.createElement('img');
-        img.src = opts.cover;
-        img.alt = opts.alt || opts.title;
-        img.loading = 'lazy';
-        img.decoding = 'async';
+        if (opts.cover) {
+            var img = document.createElement('img');
+            img.src = opts.cover;
+            img.alt = opts.alt || opts.title;
+            img.loading = 'lazy';
+            img.decoding = 'async';
 
-        // 注意用布尔标记而不是比较 URL：img.src 会被浏览器编码，中文路径比不出来
-        var triedFallback = false;
-        img.addEventListener('error', function () {
-            if (!triedFallback && opts.coverFallback) {   // 缩略图缺失就退回原图
-                triedFallback = true;
-                img.src = opts.coverFallback;
-                return;
-            }
-            wrap.innerHTML = '';
-            var fail = document.createElement('div');
-            fail.className = 'cover-fallback';
-            fail.textContent = '无封面';
-            wrap.appendChild(fail);
-        });
-        wrap.appendChild(img);
+            // 注意用布尔标记而不是比较 URL：img.src 会被浏览器编码，中文路径比不出来
+            var triedFallback = false;
+            img.addEventListener('error', function () {
+                if (!triedFallback && opts.coverFallback) {   // 缩略图缺失就退回原图
+                    triedFallback = true;
+                    img.src = opts.coverFallback;
+                    return;
+                }
+                wrap.innerHTML = '';
+                var fail = document.createElement('div');
+                fail.className = 'cover-fallback';
+                fail.textContent = '无封面';
+                wrap.appendChild(fail);
+            });
+            wrap.appendChild(img);
+        }
+        else {
+            // 空大类（比如还没放东西的「备注」）没有封面，直接摆一块占位
+            var blank = document.createElement('div');
+            blank.className = 'cover-fallback';
+            blank.textContent = opts.emptyText || '还没有内容';
+            wrap.appendChild(blank);
+        }
 
         var info = document.createElement('div');
         info.className = 'cover-info';
@@ -790,19 +823,19 @@
         });
     }
 
+    // 最近记录：只看有张数的日子（只有备注的日子归下面的「备注」块）
     function renderHeatRecent() {
         el.heatmapRecent.innerHTML = '';
 
         var keys = Object.keys(heat.days).filter(function (key) {
-            var info = heat.days[key] || {};
-            return countOf(key) > 0 || info.note;
+            return countOf(key) > 0;
         }).sort().reverse().slice(0, 5);
 
         if (!keys.length) {
             var empty = document.createElement('p');
             empty.className = 'recent-empty';
-            empty.innerHTML = '还没有任何记录。<br>把图片放进 <code>images/</code> 后' +
-                '双击 <code>tools\\update-gallery.cmd</code>，<br>或者手写 <code>daily.json</code> 补录。';
+            empty.innerHTML = '还没有记录。<br>把图片放进 <code>images/</code> 后' +
+                '双击 <code>tools\\update-gallery.cmd</code>。';
             el.heatmapRecent.appendChild(empty);
             return;
         }
@@ -829,15 +862,78 @@
             row.appendChild(date);
             row.appendChild(count);
 
-            if (info.note) {
-                var note = document.createElement('span');
-                note.className = 'recent-note';
-                note.textContent = info.note;
-                note.title = info.note;
-                row.appendChild(note);
+            el.heatmapRecent.appendChild(row);
+        });
+    }
+
+    /* ---------------- 备注块（热力图下面那块） ----------------
+       daily.json 里给某天写了 note 的记录都摆这儿；
+       「查看备注 →」指向固定排在最后的大类「备注」，
+       以后往 images/备注/ 里放页面，就有地方落了。 */
+
+    function renderHeatNotes() {
+        if (!el.heatmapNotes) { return; }
+
+        el.heatmapNotes.innerHTML = '';
+
+        var head = document.createElement('div');
+        head.className = 'notes-head';
+
+        var title = document.createElement('p');
+        title.className = 'notes-title';
+        title.textContent = '备注';
+        head.appendChild(title);
+
+        if (findGroup(NOTES_GROUP)) {
+            var link = document.createElement('button');
+            link.type = 'button';
+            link.className = 'note-link';
+            link.textContent = '查看备注 →';
+            link.addEventListener('click', function () { navigate(NOTES_GROUP, null); });
+            head.appendChild(link);
+        }
+
+        el.heatmapNotes.appendChild(head);
+
+        var keys = Object.keys(heat.days).filter(function (key) {
+            var info = heat.days[key] || {};
+            return !!info.note;
+        }).sort().reverse().slice(0, 4);
+
+        if (!keys.length) {
+            var empty = document.createElement('p');
+            empty.className = 'recent-empty';
+            empty.innerHTML = '还没有备注。在 <code>daily.json</code> 里给某天写一个 ' +
+                '<code>"note"</code>，重跑生成脚本就会出现在这里。';
+            el.heatmapNotes.appendChild(empty);
+            return;
+        }
+
+        keys.forEach(function (key) {
+            var info = heat.days[key] || {};
+
+            var row = document.createElement('div');
+            row.className = 'recent-item';
+
+            var date = document.createElement('span');
+            date.className = 'recent-date';
+            date.textContent = key.slice(5);        // 只留 月-日
+            row.appendChild(date);
+
+            if (countOf(key) > 0) {
+                var count = document.createElement('span');
+                count.className = 'recent-count';
+                count.textContent = countOf(key) + ' 张';
+                row.appendChild(count);
             }
 
-            el.heatmapRecent.appendChild(row);
+            var note = document.createElement('span');
+            note.className = 'recent-note';
+            note.textContent = info.note;
+            note.title = info.note;
+            row.appendChild(note);
+
+            el.heatmapNotes.appendChild(row);
         });
     }
 
@@ -889,6 +985,7 @@
             (stats.maxDay > 0 ? ' · 单日最多 ' + stats.maxDay + ' 张' : '');
 
         renderHeatStats(stats);
+        renderHeatNotes();
         renderHeatRecent();
     }
 
@@ -960,6 +1057,19 @@
         if (!node || !node.closest) { return null; }
         var item = node.closest('.legend-item');
         return (item && el.heatmapLegend && el.heatmapLegend.contains(item)) ? item : null;
+    }
+
+    // 图例那四格本身不写文字，靠 aria-label + 悬停气泡说清各自要多少张
+    function initLegend() {
+        if (!el.heatmapLegend) { return; }
+
+        var items = el.heatmapLegend.querySelectorAll('.legend-item');
+        for (var i = 0; i < items.length; i++) {
+            var info = HEAT_LEVELS[Number(items[i].dataset.level)];
+            if (info) {
+                items[i].setAttribute('aria-label', info.name + '：' + info.rule);
+            }
+        }
     }
 
     function initHeatmapTip() {
@@ -1262,6 +1372,7 @@
         initDarkMode();
         initControls();
         initModal();
+        initLegend();
         initHeatmapTip();
         initHeatRange();
 

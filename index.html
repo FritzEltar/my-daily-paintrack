@@ -12,7 +12,7 @@
 
     <title>My Daily Paintrack</title>
 
-    <link rel="stylesheet" href="style.css?v=ece836cc">
+    <link rel="stylesheet" href="style.css?v=d291fa64">
 </head>
 
 <body>
@@ -73,6 +73,26 @@
                     <div id="collectionsGrid"
                          class="cover-grid">
                     </div>
+
+
+                    <!-- 大类里一个图集都没有时（比如还空着的「备注」） -->
+                    <section
+                        id="collectionsEmpty"
+                        class="empty-message"
+                        style="display:none;">
+
+                        <div class="empty-icon">
+                            📁
+                        </div>
+
+                        <h2 id="collectionsEmptyTitle">
+                            这个大类还是空的
+                        </h2>
+
+                        <p id="collectionsEmptyText">
+                        </p>
+
+                    </section>
 
                 </section>
 
@@ -250,38 +270,49 @@
                     </div>
 
 
-                    <!-- 图例：四档由低到高，鼠标悬停 / Tab 聚焦会显示该档的张数要求 -->
+                    <!-- 图例：左边「低」右边「高」，中间四个格子紧紧挨着。
+                         鼠标悬停 / Tab 聚焦某一格会显示那一档的张数要求。 -->
                     <div class="heatmap-legend"
                          id="heatmapLegend">
 
-                        <span class="legend-item"
-                              data-level="0"
-                              tabindex="0">
-                            <span class="hm-cell lv0"></span>
-                            <span class="legend-text">无</span>
+                        <span class="legend-end">低</span>
+
+                        <span class="legend-cells">
+
+                            <span class="legend-item"
+                                  data-level="0"
+                                  tabindex="0">
+                                <span class="hm-cell lv0"></span>
+                            </span>
+
+                            <span class="legend-item"
+                                  data-level="1"
+                                  tabindex="0">
+                                <span class="hm-cell lv1"></span>
+                            </span>
+
+                            <span class="legend-item"
+                                  data-level="2"
+                                  tabindex="0">
+                                <span class="hm-cell lv2"></span>
+                            </span>
+
+                            <span class="legend-item"
+                                  data-level="3"
+                                  tabindex="0">
+                                <span class="hm-cell lv3"></span>
+                            </span>
+
                         </span>
 
-                        <span class="legend-item"
-                              data-level="1"
-                              tabindex="0">
-                            <span class="hm-cell lv1"></span>
-                            <span class="legend-text">低</span>
-                        </span>
+                        <span class="legend-end">高</span>
 
-                        <span class="legend-item"
-                              data-level="2"
-                              tabindex="0">
-                            <span class="hm-cell lv2"></span>
-                            <span class="legend-text">中</span>
-                        </span>
+                    </div>
 
-                        <span class="legend-item"
-                              data-level="3"
-                              tabindex="0">
-                            <span class="hm-cell lv3"></span>
-                            <span class="legend-text">高</span>
-                        </span>
 
+                    <!-- 备注：只写了备注、没写张数的记录，就摆在这块 -->
+                    <div class="heatmap-notes"
+                         id="heatmapNotes">
                     </div>
 
 
@@ -401,7 +432,7 @@
         </p>
     </noscript>
 
-    <script src="script.js?v=ece836cc"></script>
+    <script src="script.js?v=d291fa64"></script>
 
 </body>
 

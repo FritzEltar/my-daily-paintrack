@@ -392,11 +392,26 @@ body.side-hidden .side-panel {
 
     align-items: center;
 
-    justify-content: space-between;
+    justify-content: center;
 
-    gap: 4px;
+    gap: 8px;
 
     margin-top: 12px;
+}
+
+/* 中间那四个格子紧紧挨在一起 */
+.legend-cells {
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 2px;
+}
+
+.legend-end {
+    font-size: 11px;
+
+    color: #999;
 }
 
 .heatmap-legend .hm-cell {
@@ -405,17 +420,16 @@ body.side-hidden .side-panel {
     height: 10px;
 }
 
-/* 图例本身也能悬停 / Tab 聚焦，用来查这一档的张数要求 */
+/* 图例的每一格都能悬停 / Tab 聚焦，用来查这一档要多少张 */
 .legend-item {
     display: inline-flex;
 
     align-items: center;
 
-    gap: 5px;
+    /* 不留内边距，四格才真的挨在一起 */
+    padding: 0;
 
-    padding: 2px 3px;
-
-    border-radius: 6px;
+    border-radius: 4px;
 
     cursor: help;
 }
@@ -428,13 +442,58 @@ body.side-hidden .side-panel {
 .legend-item:focus-visible {
     outline: 2px solid #4d6bfe;
 
-    outline-offset: 1px;
+    outline-offset: 2px;
 }
 
-.legend-text {
-    font-size: 11px;
+
+/* =========================
+   备注（只写备注、不写张数的记录）
+========================= */
+
+.heatmap-notes {
+    margin-top: 13px;
+
+    padding-top: 11px;
+
+    border-top: 1px solid #eee;
+}
+
+.notes-head {
+    display: flex;
+
+    align-items: baseline;
+
+    justify-content: space-between;
+
+    gap: 8px;
+}
+
+.notes-title {
+    margin: 0;
+
+    font-size: 12px;
 
     color: #999;
+}
+
+.note-link {
+    border: none;
+
+    background: transparent;
+
+    padding: 0;
+
+    font: inherit;
+
+    font-size: 12px;
+
+    color: #4d6bfe;
+
+    cursor: pointer;
+}
+
+.note-link:hover {
+    text-decoration: underline;
 }
 
 .heatmap-stats {
@@ -1449,10 +1508,18 @@ body.dark .hm-cell.today {
 
 body.dark .heatmap-month,
 body.dark .heatmap-weekdays,
-body.dark .legend-text,
+body.dark .legend-end,
 body.dark .hm-stat-label,
 body.dark .recent-title {
     color: #888;
+}
+
+body.dark .heatmap-notes {
+    border-color: #2f2f2f;
+}
+
+body.dark .note-link {
+    color: #8ea2ff;
 }
 
 body.dark .hm-stat {

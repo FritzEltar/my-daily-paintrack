@@ -104,6 +104,7 @@
       可调参数：
         -NoThumbs            只更新清单和热力图，不生成派生图
         -NoExif              不读 EXIF，只用 meta.json / 旧清单 / 文件时间
+        -LastGroups 备注     永远排在最后的大类（没有图片也显示，默认「备注」）
         -ThumbWidth 600      缩略图最大宽度（默认 600）
         -ThumbQuality 82     缩略图 JPEG 质量（默认 82）
         -ViewWidth 1600      查看图最大边长（默认 1600）
@@ -163,7 +164,11 @@ param(
     [switch]$NoThumbs,
 
     # 不读 EXIF 拍摄时间（图很多时能快一点），日期只用 meta.json / 旧清单 / 文件时间
-    [switch]$NoExif
+    [switch]$NoExif,
+
+    # 永远排在最后的大类。这些名字即使 images/ 下没有对应文件夹、
+    # 或者文件夹里一张图都没有，也照样出现在网站上（排在所有年份后面）。
+    [string[]]$LastGroups = @('备注')
 )
 
 $ErrorActionPreference = 'Stop'
@@ -687,7 +692,17 @@ foreach ($group in @($tree.Keys)) {
 $groupsOut = New-Object System.Collections.Generic.List[object]
 $totalImages = 0
 
-foreach ($group in @($tree.Keys | Sort-Object)) {
+# 「备注」这类占位大类：没有图片也要出现，而且永远排最后
+foreach ($name in $LastGroups) {
+    if (-not $tree.Contains($name)) { $tree[$name] = [ordered]@{} }
+}
+
+$groupOrder = @($tree.Keys | Where-Object { $LastGroups -notcontains $_ } | Sort-Object)
+foreach ($name in $LastGroups) {
+    if ($tree.Contains($name) -and ($groupOrder -notcontains $name)) { $groupOrder += $name }
+}
+
+foreach ($group in $groupOrder) {
     $collectionsOut = New-Object System.Collections.Generic.List[object]
     $groupImages = 0
     $groupCover = ''
@@ -747,7 +762,8 @@ foreach ($group in @($tree.Keys | Sort-Object)) {
         if (-not $groupCoverThumb) { $groupCoverThumb = $coverThumb }
     }
 
-    if ($collectionsOut.Count -eq 0) { continue }
+    # 空大类一般跳过；但「备注」这类占位大类保留，方便以后往里放东西
+    if ($collectionsOut.Count -eq 0 -and ($LastGroups -notcontains $group)) { continue }
 
     $groupsOut.Add([pscustomobject][ordered]@{
         name            = $group
