@@ -667,7 +667,8 @@ body.side-hidden .side-panel {
 .cover-card {
     background: white;
 
-    border-radius: 14px;
+    /* 缩略图 / 封面卡用直角，不要圆角 */
+    border-radius: 0;
 
     overflow: hidden;
 
@@ -855,7 +856,8 @@ body.side-hidden .side-panel {
 .image-card {
     background: white;
 
-    border-radius: 12px;
+    /* 和封面卡保持一致：直角 */
+    border-radius: 0;
 
     overflow: hidden;
 

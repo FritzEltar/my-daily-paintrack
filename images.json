@@ -1,1 +1,40 @@
-[]
+{
+    "version":  2,
+    "groups":  [
+                   {
+                       "name":  "2026",
+                       "cover":  "images/2026/9月/8576fad38a4c1922af16ca68febeb6b2.png",
+                       "coverThumb":  "thumbs/2026/9月/8576fad38a4c1922af16ca68febeb6b2.jpg",
+                       "collectionCount":  1,
+                       "imageCount":  1,
+                       "collections":  [
+                                           {
+                                               "name":  "9月",
+                                               "path":  "2026/9月",
+                                               "cover":  "images/2026/9月/8576fad38a4c1922af16ca68febeb6b2.png",
+                                               "coverThumb":  "thumbs/2026/9月/8576fad38a4c1922af16ca68febeb6b2.jpg",
+                                               "imageCount":  1,
+                                               "roles":  [
+                                                             {
+                                                                 "name":  "草稿箱",
+                                                                 "imageCount":  1,
+                                                                 "images":  [
+                                                                                {
+                                                                                    "file":  "images/2026/9月/8576fad38a4c1922af16ca68febeb6b2.png",
+                                                                                    "thumb":  "thumbs/2026/9月/8576fad38a4c1922af16ca68febeb6b2.jpg",
+                                                                                    "view":  "views/2026/9月/8576fad38a4c1922af16ca68febeb6b2.jpg",
+                                                                                    "title":  "8576fad38a4c1922af16ca68febeb6b2",
+                                                                                    "description":  "",
+                                                                                    "tags":  [
+
+                                                                                             ],
+                                                                                    "date":  "2026-09-17"
+                                                                                }
+                                                                            ]
+                                                             }
+                                                         ]
+                                           }
+                                       ]
+                   }
+               ]
+}
