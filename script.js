@@ -719,10 +719,13 @@
         };
     }
 
+    // 全部统计都是「所有记录里」的，不随上面的 3 个月 / 半年 / 一年 变，
+    // 所以界面上的单日最多会把它落在哪一天一起写出来，免得跟范围搞混。
     function computeHeatStats() {
         var total = 0;
         var active = 0;
         var maxDay = 0;
+        var maxDate = '';
         var activeKeys = [];
 
         Object.keys(heat.days).forEach(function (key) {
@@ -731,7 +734,7 @@
             if (hasRecord(key)) {
                 active++;
                 activeKeys.push(key);
-                if (c > maxDay) { maxDay = c; }
+                if (c > maxDay) { maxDay = c; maxDate = key; }
             }
         });
 
@@ -764,7 +767,8 @@
             active: active,
             current: current,
             longest: longest,
-            maxDay: maxDay
+            maxDay: maxDay,
+            maxDate: maxDate
         };
     }
 
@@ -981,8 +985,11 @@
 
         el.heatmapGrid.appendChild(frag);
 
+        // 单日最多是「所有记录里」的，跟上面那段日期范围无关，所以带上具体哪天
         el.heatmapRange.textContent = dayKey(win.start) + ' ~ ' + dayKey(win.end) +
-            (stats.maxDay > 0 ? ' · 单日最多 ' + stats.maxDay + ' 张' : '');
+            (stats.maxDay > 0
+                ? ' · 单日最多 ' + stats.maxDay + ' 张（' + stats.maxDate.slice(5) + '）'
+                : '');
 
         renderHeatStats(stats);
         renderHeatNotes();
