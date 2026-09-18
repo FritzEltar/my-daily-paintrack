@@ -5,6 +5,10 @@
 //   2. git add + git commit
 //   3. git push
 //
+// 它**只管图片相关的路径**（见下面的 SYNC_PATHS）：代码、文档、别的杂项
+// 一概不碰，所以你（或者帮你改代码的人）改到一半的东西不会被顺手推上线。
+// 那些改动留在工作区，等你自己 commit。
+//
 // 用法（双击 tools\auto-push.cmd 即可）：
 //   node tools/auto-push.mjs
 //
@@ -16,6 +20,7 @@
 //   --no-commit      只生成，不提交（调试用）
 //   --oneshot        同步一次就退出
 //   --no-initial     启动时不先同步一次
+//   --all-paths      恢复成「什么都提交」（老的 git add -A 行为）
 //
 // 它只监听 images/ 和 daily.json，而生成脚本写的是 images.json /
 // heatmap.json / thumbs/ / views/，都不在监听范围内，所以不会自己触发自己。
@@ -48,6 +53,21 @@ const NO_PUSH = flag('--no-push');
 const NO_COMMIT = flag('--no-commit');
 const ONESHOT = flag('--oneshot');
 const NO_INITIAL = flag('--no-initial');
+const ALL_PATHS = flag('--all-paths');   // 退回到「什么都提交」
+
+// 自动同步只管这些路径，别的一律不碰
+const SYNC_PATHS = [
+    'images',
+    'thumbs',
+    'views',
+    'images.json',
+    'heatmap.json',
+    'daily.json'
+];
+
+function isSyncPath(file) {
+    return SYNC_PATHS.some((p) => file === p || file.startsWith(p + '/'));
+}
 
 /* ---------------- 日志 ---------------- */
 
@@ -95,7 +115,12 @@ function changedFiles() {
         .split('\n')
         .map((line) => line.replace(/\r$/, ''))
         .filter((line) => line.trim() !== '')
-        .map((line) => line.slice(3).trim());
+        .map((line) => line.slice(3).trim())
+        .map((p) => {
+            const arrow = p.indexOf(' -> ');     // 改名会写成 "旧 -> 新"
+            if (arrow >= 0) { p = p.slice(arrow + 4); }
+            return p.replace(/^"|"$/g, '');      // 带空格的路径会被引号包住
+        });
 }
 
 /* ---------------- 判断文件是不是已经写完了 ---------------- */
@@ -170,20 +195,35 @@ async function sync(reason) {
             return;
         }
 
-        const files = changedFiles();
+        const all = changedFiles();
+        const files = ALL_PATHS ? all : all.filter(isSyncPath);
+        const skipped = all.length - files.length;
+
         if (!files.length) {
-            log('没有需要提交的变化');
+            log(skipped
+                ? `图片这边没有变化（另有 ${skipped} 个改动不在自动同步范围内，留给你自己提交）`
+                : '没有需要提交的变化');
             return;
         }
 
         log(`有 ${files.length} 个文件变化：${files.slice(0, 6).join('、')}${files.length > 6 ? ' …' : ''}`);
+        if (skipped) {
+            log(`  另有 ${skipped} 个改动不属于自动同步范围，这次不动它`);
+        }
 
         if (NO_COMMIT) {
             log('--no-commit：已生成，不提交');
             return;
         }
 
-        run('git', ['add', '-A'], '暂存…');
+        if (ALL_PATHS) {
+            run('git', ['add', '-A'], '暂存（全部改动）…');
+        }
+        else {
+            // 只暂存图片相关的路径；-A 让这些路径下的删除 / 改名也一起进去
+            const paths = SYNC_PATHS.filter((p) => fs.existsSync(path.join(ROOT, p)));
+            run('git', ['add', '-A', '--', ...paths], '暂存（只暂存图片相关的东西）…');
+        }
 
         const subject = `自动同步图库（${files.length} 个文件）`;
         const body = files.slice(0, 20).join('\n');
@@ -227,6 +267,7 @@ log('My Daily Paintrack · 自动同步');
 log(`  盯着：${IMAGES}`);
 log(`  延时：${Math.round(DELAY / 1000)} 秒    推送失败重试：${Math.round(RETRY / 1000)} 秒` +
     `${NO_PUSH ? '    [--no-push]' : ''}${NO_COMMIT ? '    [--no-commit]' : ''}`);
+log(`  提交范围：${ALL_PATHS ? '仓库里的全部改动' : '只有图片相关（images / thumbs / views / images.json / heatmap.json / daily.json）'}`);
 log('  按 Ctrl+C 或直接关掉窗口即停止');
 log('');
 
