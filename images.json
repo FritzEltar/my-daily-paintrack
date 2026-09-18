@@ -6,14 +6,14 @@
                        "cover":  "images/2026/9月/1.png",
                        "coverThumb":  "thumbs/2026/9月/1.jpg",
                        "collectionCount":  1,
-                       "imageCount":  2,
+                       "imageCount":  4,
                        "collections":  [
                                            {
                                                "name":  "9月",
                                                "path":  "2026/9月",
                                                "cover":  "images/2026/9月/1.png",
                                                "coverThumb":  "thumbs/2026/9月/1.jpg",
-                                               "imageCount":  2,
+                                               "imageCount":  4,
                                                "images":  [
                                                               {
                                                                   "file":  "images/2026/9月/1.png",
@@ -38,6 +38,32 @@
 
                                                                            ],
                                                                   "date":  "2026-09-17",
+                                                                  "w":  600,
+                                                                  "h":  338
+                                                              },
+                                                              {
+                                                                  "file":  "images/2026/9月/92.png",
+                                                                  "thumb":  "thumbs/2026/9月/92.jpg",
+                                                                  "view":  "views/2026/9月/92.jpg",
+                                                                  "title":  "92",
+                                                                  "description":  "",
+                                                                  "tags":  [
+
+                                                                           ],
+                                                                  "date":  "2026-09-18",
+                                                                  "w":  600,
+                                                                  "h":  625
+                                                              },
+                                                              {
+                                                                  "file":  "images/2026/9月/93.png",
+                                                                  "thumb":  "thumbs/2026/9月/93.jpg",
+                                                                  "view":  "views/2026/9月/93.jpg",
+                                                                  "title":  "93",
+                                                                  "description":  "",
+                                                                  "tags":  [
+
+                                                                           ],
+                                                                  "date":  "2026-09-18",
                                                                   "w":  600,
                                                                   "h":  338
                                                               }
