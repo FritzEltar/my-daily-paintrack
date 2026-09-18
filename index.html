@@ -12,7 +12,7 @@
 
     <title>My Daily Paintrack</title>
 
-    <link rel="stylesheet" href="style.css?v=9383c393">
+    <link rel="stylesheet" href="style.css?v=08569ac9">
 </head>
 
 <body>
@@ -110,6 +110,26 @@
                             placeholder="在本图集内搜索标题、标签..."
                             autocomplete="off"
                         >
+
+                        <!-- 排序：图集里的图按日期排，默认由新到旧 -->
+                        <div class="sort-switch"
+                             id="sortSwitch"
+                             role="group"
+                             aria-label="排序方式">
+
+                            <button type="button"
+                                    class="sort-btn active"
+                                    data-sort="desc">
+                                由新至旧
+                            </button>
+
+                            <button type="button"
+                                    class="sort-btn"
+                                    data-sort="asc">
+                                由旧至新
+                            </button>
+
+                        </div>
 
                     </section>
 
@@ -432,7 +452,7 @@
         </p>
     </noscript>
 
-    <script src="script.js?v=9383c393"></script>
+    <script src="script.js?v=08569ac9"></script>
 
 </body>
 

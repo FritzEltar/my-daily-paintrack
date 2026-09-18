@@ -75,6 +75,7 @@
 
         imagesView: document.getElementById('imagesView'),
         searchInput: document.getElementById('searchInput'),
+        sortSwitch: document.getElementById('sortSwitch'),
         resultCount: document.getElementById('resultCount'),
         gallery: document.getElementById('gallery'),
         imagesEmpty: document.getElementById('imagesEmpty'),
@@ -121,6 +122,7 @@
         group: null,        // 当前大类名
         collection: null,   // 当前图集名
         query: '',          // 搜索词（只在图集内部生效）
+        sort: 'desc',       // 排序：desc 由新至旧（默认）/ asc 由旧至新
         page: 1
     };
 
@@ -593,7 +595,24 @@
         return item;
     }
 
-    // 没搜索时出全部图，搜索时跨整个图集筛
+    // 按日期排：默认由新至旧；同一天按标题；没有日期的永远排最后
+    function compareImages(a, b) {
+        var da = a.date || '';
+        var db = b.date || '';
+
+        if (da !== db) {
+            if (!da) { return 1; }
+            if (!db) { return -1; }
+            var byDate = da < db ? -1 : 1;          // 日期是 YYYY-MM-DD，直接比字符串
+            return view.sort === 'asc' ? byDate : -byDate;
+        }
+
+        var ta = a.title || '';
+        var tb = b.title || '';
+        return ta < tb ? -1 : (ta > tb ? 1 : 0);
+    }
+
+    // 没搜索时出全部图，搜索时跨整个图集筛，最后统一按日期排好
     function computeShownImages(collection) {
         var q = view.query.trim().toLowerCase();
 
@@ -601,16 +620,20 @@
             return { img: img };
         });
 
-        if (!q) { return pool; }
+        if (q) {
+            pool = pool.filter(function (entry) {
+                var img = entry.img;
+                var haystack = [img.title, img.description, img.file]
+                    .concat(img.tags || [])
+                    .join(' ')
+                    .toLowerCase();
+                return haystack.indexOf(q) !== -1;
+            });
+        }
 
-        return pool.filter(function (entry) {
-            var img = entry.img;
-            var haystack = [img.title, img.description, img.file]
-                .concat(img.tags || [])
-                .join(' ')
-                .toLowerCase();
-            return haystack.indexOf(q) !== -1;
-        });
+        pool.sort(function (a, b) { return compareImages(a.img, b.img); });
+
+        return pool;
     }
 
     function renderImages(group) {
@@ -1335,6 +1358,31 @@
 
     /* ---------------- 控件 ---------------- */
 
+    // 图集内的排序开关
+    function initSort() {
+        if (!el.sortSwitch) { return; }
+
+        el.sortSwitch.addEventListener('click', function (e) {
+            var btn = e.target && e.target.closest ? e.target.closest('.sort-btn') : null;
+            if (!btn) { return; }
+
+            var sort = btn.dataset.sort;
+            if (!sort || sort === view.sort) { return; }
+
+            view.sort = sort;
+
+            var all = el.sortSwitch.querySelectorAll('.sort-btn');
+            for (var i = 0; i < all.length; i++) {
+                all[i].classList.toggle('active', all[i] === btn);
+            }
+
+            // 排完序从头看
+            view.page = 1;
+            var group = findGroup(view.group);
+            if (group && view.collection) { renderImages(group); }
+        });
+    }
+
     function initControls() {
         if (el.homeLink) {
             el.homeLink.addEventListener('click', function (e) {
@@ -1378,6 +1426,7 @@
     function init() {
         initDarkMode();
         initControls();
+        initSort();
         initModal();
         initLegend();
         initHeatmapTip();

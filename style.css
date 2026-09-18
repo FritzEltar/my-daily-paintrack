@@ -637,15 +637,25 @@ body.side-hidden .side-panel {
 
 
 /* =========================
-   搜索框
+   搜索框 + 排序开关
 ========================= */
 
 .search-section {
+    display: flex;
+
+    align-items: stretch;
+
+    gap: 10px;
+
     margin-bottom: 25px;
 }
 
 #searchInput {
-    width: 100%;
+    flex: 1 1 auto;
+
+    width: auto;
+
+    min-width: 0;
 
     padding: 15px 18px;
 
@@ -666,6 +676,51 @@ body.side-hidden .side-panel {
 
 #searchInput:focus {
     border-color: #555;
+}
+
+/* 由新至旧 / 由旧至新 */
+.sort-switch {
+    display: inline-flex;
+
+    flex: none;
+
+    gap: 6px;
+}
+
+.sort-btn {
+    display: inline-flex;
+
+    align-items: center;
+
+    border: 1px solid #ccc;
+
+    background: white;
+
+    color: #555;
+
+    font-size: 13px;
+
+    padding: 0 14px;
+
+    border-radius: 12px;
+
+    cursor: pointer;
+
+    white-space: nowrap;
+
+    transition: 0.15s;
+}
+
+.sort-btn:hover {
+    background: #f0f0f0;
+}
+
+.sort-btn.active {
+    background: #4d6bfe;
+
+    border-color: #4d6bfe;
+
+    color: white;
 }
 
 
@@ -1367,6 +1422,26 @@ body.dark #searchInput {
     border-color: #444;
 }
 
+body.dark .sort-btn {
+    background: #222;
+
+    color: #ccc;
+
+    border-color: #444;
+}
+
+body.dark .sort-btn:hover {
+    background: #333;
+}
+
+body.dark .sort-btn.active {
+    background: #4d6bfe;
+
+    border-color: #4d6bfe;
+
+    color: white;
+}
+
 body.dark .crumb {
     color: #888;
 }
@@ -1580,6 +1655,23 @@ body.dark .hm-tip b {
     .gallery {
         grid-template-columns:
             repeat(2, 1fr);
+    }
+
+    /* 窄屏放不下就把排序开关挪到下一行，两个按钮平分 */
+    .search-section {
+        flex-wrap: wrap;
+    }
+
+    .sort-switch {
+        width: 100%;
+    }
+
+    .sort-btn {
+        flex: 1 1 0;
+
+        justify-content: center;
+
+        padding: 10px 0;
     }
 
     .modal-content {
