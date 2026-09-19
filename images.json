@@ -6,14 +6,14 @@
                        "cover":  "images/2026/9月/1.png",
                        "coverThumb":  "thumbs/2026/9月/1.jpg",
                        "collectionCount":  1,
-                       "imageCount":  4,
+                       "imageCount":  5,
                        "collections":  [
                                            {
                                                "name":  "9月",
                                                "path":  "2026/9月",
                                                "cover":  "images/2026/9月/1.png",
                                                "coverThumb":  "thumbs/2026/9月/1.jpg",
-                                               "imageCount":  4,
+                                               "imageCount":  5,
                                                "images":  [
                                                               {
                                                                   "file":  "images/2026/9月/1.png",
@@ -64,6 +64,19 @@
 
                                                                            ],
                                                                   "date":  "2026-09-18",
+                                                                  "w":  600,
+                                                                  "h":  338
+                                                              },
+                                                              {
+                                                                  "file":  "images/2026/9月/e161b30bd685b4eae4445aece263c024.png",
+                                                                  "thumb":  "thumbs/2026/9月/e161b30bd685b4eae4445aece263c024.jpg",
+                                                                  "view":  "views/2026/9月/e161b30bd685b4eae4445aece263c024.jpg",
+                                                                  "title":  "e161b30bd685b4eae4445aece263c024",
+                                                                  "description":  "",
+                                                                  "tags":  [
+
+                                                                           ],
+                                                                  "date":  "2026-09-19",
                                                                   "w":  600,
                                                                   "h":  338
                                                               }
