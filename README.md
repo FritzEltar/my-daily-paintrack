@@ -415,6 +415,8 @@ powershell -File tools\generate-manifest.ps1 -ViewWidth 2200 -ViewQuality 90
 - **推送失败会自动重试**（默认每分钟一次）：代理软件忘了开、临时断网都不用管，
   窗口开着就行，网络恢复后它自己补推。
 - **关掉窗口就停止**（也可以按 Ctrl+C）。
+- **窗口平时是静的，没动静 = 正常。** 为了让人放心，它每隔 30 分钟会打一句
+  「还在盯着 images/ —— 最近一次：…」，顺带告诉你上次干了什么。
 - 日志写在 `logs\sync.log`，超过 1MB 自动轮转；`logs/` 已经进了 `.gitignore`，不会提交。
 - 它只监听 `images\` 和 `daily.json`；生成脚本写的是 `images.json` / `heatmap.json` /
   `thumbs/` / `views/`，都不在监听范围内，所以**不会自己触发自己**。
@@ -444,6 +446,7 @@ node tools/auto-push.mjs --retry 300000   # 推送失败 5 分钟后重试
 | `--oneshot` | 同步一次就退出 |
 | `--no-initial` | 启动时不先补同步一次 |
 | `--all-paths` | 恢复成「提交仓库里的全部改动」（默认只提交图片相关的路径） |
+| `--heartbeat <毫秒>` | 每隔多久报一次「还在盯着」（默认 30 分钟） |
 
 > 这些 `.cmd` 里**不写中文**（cmd.exe 按系统代码页读批处理，UTF-8 的中文会把
 > 命令行拆坏），中文提示都由它调用的 `.ps1` / `.mjs` 输出。

@@ -21,6 +21,7 @@
 //   --oneshot        同步一次就退出
 //   --no-initial     启动时不先同步一次
 //   --all-paths      恢复成「什么都提交」（老的 git add -A 行为）
+//   --heartbeat 1800000   每隔多久报一次「我还活着」（毫秒，默认 30 分钟）
 //
 // 它只监听 images/ 和 daily.json，而生成脚本写的是 images.json /
 // heatmap.json / thumbs/ / views/，都不在监听范围内，所以不会自己触发自己。
@@ -53,7 +54,8 @@ const NO_PUSH = flag('--no-push');
 const NO_COMMIT = flag('--no-commit');
 const ONESHOT = flag('--oneshot');
 const NO_INITIAL = flag('--no-initial');
-const ALL_PATHS = flag('--all-paths');   // 退回到「什么都提交」
+const ALL_PATHS = flag('--all-paths');    // 退回到「什么都提交」
+const HEARTBEAT = opt('--heartbeat', 30 * 60 * 1000);   // 每隔多久报一次平安
 
 // 自动同步只管这些路径，别的一律不碰
 const SYNC_PATHS = [
@@ -170,6 +172,7 @@ let busy = false;
 let queued = false;
 let changeTimer = null;
 let pushTimer = null;
+let lastResult = '刚启动，还没同步过';      // 给心跳用：最近一次干了什么
 
 function schedule(reason) {
     if (ONESHOT || busy) { queued = true; return; }
@@ -200,6 +203,7 @@ async function sync(reason) {
         const skipped = all.length - files.length;
 
         if (!files.length) {
+            lastResult = `没有变化（${stamp()}）`;
             log(skipped
                 ? `图片这边没有变化（另有 ${skipped} 个改动不在自动同步范围内，留给你自己提交）`
                 : '没有需要提交的变化');
@@ -252,10 +256,12 @@ function push() {
     if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; }
 
     if (run('git', ['push'], '推送到 GitHub…') === 0) {
+        lastResult = `已推送（${stamp()}）`;
         log('✅ 已推送，等 1~2 分钟 GitHub Pages 就更新了');
         return;
     }
 
+    lastResult = `推送失败，正在重试（${stamp()}）`;
     log(`❌ 推送失败（代理软件没开？断网？），${Math.round(RETRY / 1000)} 秒后自动重试`);
     pushTimer = setTimeout(push, RETRY);
 }
@@ -269,6 +275,11 @@ log(`  延时：${Math.round(DELAY / 1000)} 秒    推送失败重试：${Math.r
     `${NO_PUSH ? '    [--no-push]' : ''}${NO_COMMIT ? '    [--no-commit]' : ''}`);
 log(`  提交范围：${ALL_PATHS ? '仓库里的全部改动' : '只有图片相关（images / thumbs / views / images.json / heatmap.json / daily.json）'}`);
 log('  按 Ctrl+C 或直接关掉窗口即停止');
+log('');
+log('  这个窗口平时就是静静待着的 —— 没动静 = 一切正常。');
+log(`  只有往 images\\ 里加图 / 删图 / 改 daily.json 时它才会动，`);
+log(`  每隔 ${HEARTBEAT >= 60000 ? Math.round(HEARTBEAT / 60000) + ' 分钟' : Math.round(HEARTBEAT / 1000) + ' 秒'}` +
+    '会报一句「还在盯着」让你确认它没死。');
 log('');
 
 if (!fs.existsSync(IMAGES)) { log(`找不到 ${IMAGES}`); process.exit(1); }
@@ -301,6 +312,11 @@ try {
 } catch (e) {
     log('监听 daily.json 失败：' + e.message);
 }
+
+// 心跳：平时窗口里什么都不打印，容易让人以为它没在干活
+setInterval(() => {
+    log(`还在盯着 images/ —— 最近一次：${lastResult}`);
+}, HEARTBEAT).unref();
 
 process.on('SIGINT', () => {
     log('收到 Ctrl+C，停止自动同步');

@@ -4,6 +4,10 @@ desktop.ini
 .DS_Store
 *.tmp
 
+# IDE 工程配置（JetBrains 系），不是站点内容
+.idea/
+*.iml
+
 # PureRef 工程文件不是网页图片，不要提交
 *.pur
 
